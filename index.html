@@ -1,0 +1,33 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Trippy Effects App</title>
+    <link href="https://unpkg.com/filepond/dist/filepond.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>Trippy Effects App</h1>
+    
+    <!-- File Upload -->
+    <input type="file" id="fileInput" accept="image/gif,video/*">
+    
+    <!-- Control Buttons -->
+    <div id="controls">
+        <button id="glitchBtn">Glitch</button>
+        <button id="analogBtn">Analog</button>
+        <button id="trailsBtn">Trails</button>
+    </div>
+    
+    <!-- Media Display -->
+    <canvas id="mediaCanvas"></canvas>
+    
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r142/three.min.js"></script>
+    <!-- FilePond Library -->
+    <script src="https://unpkg.com/filepond/dist/filepond.js"></script>
+    <!-- App Script -->
+    <script src="app.js"></script>
+</body>
+</html>
