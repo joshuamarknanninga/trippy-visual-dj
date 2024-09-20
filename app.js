@@ -1,6 +1,9 @@
 // app.js
 
-// Select DOM elements
+// ------------------------------
+// 1. Select DOM Elements
+// ------------------------------
+
 const fileInput = document.getElementById('fileInput');
 const canvas = document.getElementById('mediaCanvas');
 const ctx = canvas.getContext('2d');
@@ -22,20 +25,32 @@ const downloadVideoLink = document.getElementById('downloadVideoLink');
 
 const launchVisualizationBtn = document.getElementById('launchVisualizationBtn');
 
-// Initialize variables
+const startAbstractBtn = document.getElementById('startAbstractBtn'); // New Button
+const stopAbstractBtn = document.getElementById('stopAbstractBtn');   // New Button
+
+// ------------------------------
+// 2. Initialize Variables
+// ------------------------------
+
+// Media Elements
 let video = null;
 let audio = null;
-let animationFrameId = null;
+
+// Animation Frames
+let mainAnimationFrameId = null;
+let audioAnimationFrameId = null;
+let abstractAnimationFrameId = null;
 
 // Effect States
 let isGlitch = false;
 let isAnalog = false;
 let isTrails = false;
+let isStrobeActive = false;
+let isAbstractActive = false;
 
 // Strobe Effect Variables
-let isStrobeActive = false;
 let strobeInterval = null;
-let strobeSpeed = 5; // default flashes per second
+let strobeSpeed = 5; // flashes per second
 let strobeColor = '#FFFFFF';
 let showStrobe = false;
 
@@ -46,7 +61,7 @@ let source = null;
 let dataArray = null;
 let bufferLength = 0;
 let previousEnergy = 0;
-let beatThreshold = 1.3; // Threshold for beat detection
+let beatThreshold = 1.3; // Threshold multiplier for beat detection
 
 // Video Recording Variables
 let mediaRecorder = null;
@@ -56,147 +71,53 @@ let recordedChunks = [];
 let visualizationWindow = null;
 let broadcastChannel = null;
 
-// Handle File Upload
+// Abstract Mode Variables
+const abstractShapes = [];
+const maxShapes = 50;
+
+// ------------------------------
+// 3. Event Listeners
+// ------------------------------
+
+// File Upload
 fileInput.addEventListener('change', handleFileUpload);
 
-// Handle Effect Buttons
+// Effect Buttons
 glitchBtn.addEventListener('click', toggleGlitch);
 analogBtn.addEventListener('click', toggleAnalog);
 trailsBtn.addEventListener('click', toggleTrails);
 
-// Handle Strobe Controls
+// Strobe Controls
 strobeSpeedSlider.addEventListener('input', updateStrobeSpeed);
 strobeColorPicker.addEventListener('input', updateStrobeColor);
 
-// Handle Audio Controls
+// Audio Controls
 playPauseBtn.addEventListener('click', togglePlayPause);
 stopBtn.addEventListener('click', stopAudio);
 
-// Handle Recording Controls
+// Recording Controls
 startRecordingBtn.addEventListener('click', startRecording);
 stopRecordingBtn.addEventListener('click', stopRecording);
 
-// Handle Live Visualization Controls
+// Live Visualization Controls
 launchVisualizationBtn.addEventListener('click', launchVisualization);
 
-// Initialize Speed Display
-speedValueDisplay.textContent = strobeSpeed;
+// Abstract Mode Controls (New)
+startAbstractBtn.addEventListener('click', startAbstractMode);
+stopAbstractBtn.addEventListener('click', stopAbstractMode);
 
-// Update Strobe Speed
-function updateStrobeSpeed(event) {
-    strobeSpeed = parseInt(event.target.value);
-    speedValueDisplay.textContent = strobeSpeed;
-    if (isStrobeActive) {
-        clearInterval(strobeInterval);
-        strobeInterval = setInterval(toggleStrobeVisibility, 1000 / strobeSpeed);
-    }
-}
+// ------------------------------
+// 4. Functions Implementation
+// ------------------------------
 
-// Update Strobe Color
-function updateStrobeColor(event) {
-    strobeColor = event.target.value;
-}
-
-// Toggle Glitch Effect
-function toggleGlitch() {
-    isGlitch = !isGlitch;
-    glitchBtn.style.backgroundColor = isGlitch ? '#666' : '#444';
-}
-
-// Toggle Analog Effect
-function toggleAnalog() {
-    isAnalog = !isAnalog;
-    analogBtn.style.backgroundColor = isAnalog ? '#666' : '#444';
-}
-
-// Toggle Trails Effect
-function toggleTrails() {
-    isTrails = !isTrails;
-    trailsBtn.style.backgroundColor = isTrails ? '#666' : '#444';
-}
-
-// Toggle Strobe Effect
-function toggleStrobe() {
-    isStrobeActive = !isStrobeActive;
-    if (isStrobeActive) {
-        strobeInterval = setInterval(toggleStrobeVisibility, 1000 / strobeSpeed);
-    } else {
-        clearInterval(strobeInterval);
-    }
-}
-
-function toggleStrobeVisibility() {
-    showStrobe = !showStrobe;
-    if (showStrobe) {
-        ctx.fillStyle = strobeColor;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-    } else {
-        // Clear the strobe by redrawing the media
-        if (video && !video.paused) {
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        } else if (audio && !audio.paused) {
-            // Optionally, you can leave trails or clear
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-        } else {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-        }
-    }
-
-    // Send strobe state to visualization window if open
-    if (broadcastChannel) {
-        broadcastChannel.postMessage({ type: 'strobe', show: showStrobe, color: strobeColor });
-    }
-}
-
-// Toggle Play/Pause Audio
-function togglePlayPause() {
-    if (!audio) return;
-
-    if (audio.paused) {
-        audio.play();
-        playPauseBtn.textContent = 'Pause';
-        startAudioVisualization();
-    } else {
-        audio.pause();
-        playPauseBtn.textContent = 'Play';
-    }
-}
-
-// Stop Audio
-function stopAudio() {
-    if (!audio) return;
-
-    audio.pause();
-    audio.currentTime = 0;
-    playPauseBtn.textContent = 'Play';
-    stopAudioVisualization();
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Notify visualization window to clear
-    if (broadcastChannel) {
-        broadcastChannel.postMessage({ type: 'clear' });
-    }
-}
-
-// Handle File Upload
+// 4.1. Handle File Upload
 function handleFileUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    // Clear previous media
-    if (video) {
-        video.pause();
-        video.src = "";
-        video = null;
-        cancelAnimationFrame(animationFrameId);
-    }
-
-    if (audio) {
-        audio.pause();
-        audio.src = "";
-        audio = null;
-        stopAudioVisualization();
-    }
+    // Clear previous media and effects
+    clearMedia();
+    clearEffects();
 
     if (file.type.startsWith('video/')) {
         handleVideoFile(file);
@@ -209,6 +130,54 @@ function handleFileUpload(event) {
     }
 }
 
+// 4.2. Clear Media
+function clearMedia() {
+    // Stop and remove video
+    if (video) {
+        video.pause();
+        video.src = "";
+        video = null;
+    }
+
+    // Stop and remove audio
+    if (audio) {
+        audio.pause();
+        audio.src = "";
+        audio = null;
+        stopAudioVisualization();
+    }
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+// 4.3. Clear All Effects
+function clearEffects() {
+    isGlitch = false;
+    isAnalog = false;
+    isTrails = false;
+    isStrobeActive = false;
+    isAbstractActive = false;
+
+    glitchBtn.style.backgroundColor = '#444';
+    analogBtn.style.backgroundColor = '#444';
+    trailsBtn.style.backgroundColor = '#444';
+
+    // Stop strobe
+    clearInterval(strobeInterval);
+    strobeInterval = null;
+    showStrobe = false;
+
+    // Stop abstract mode
+    stopAbstractMode();
+
+    // Notify visualization window
+    if (broadcastChannel) {
+        broadcastChannel.postMessage({ type: 'clear' });
+    }
+}
+
+// 4.4. Handle Video File
 function handleVideoFile(file) {
     video = document.createElement('video');
     video.src = URL.createObjectURL(file);
@@ -220,10 +189,11 @@ function handleVideoFile(file) {
     video.addEventListener('loadeddata', () => {
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
-        drawVideoFrame();
+        mainAnimationFrameId = requestAnimationFrame(drawVideoFrame);
     });
 }
 
+// 4.5. Draw Video Frame
 function drawVideoFrame() {
     if (!video) return;
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -231,20 +201,21 @@ function drawVideoFrame() {
     // Apply visual effects
     applyVisualEffects();
 
-    animationFrameId = requestAnimationFrame(drawVideoFrame);
+    mainAnimationFrameId = requestAnimationFrame(drawVideoFrame);
 }
 
+// 4.6. Handle GIF File
 function handleGifFile(file) {
     const img = new Image();
     img.src = URL.createObjectURL(file);
     img.onload = () => {
         canvas.width = img.width;
         canvas.height = img.height;
-        // For GIFs, drawing static image. To handle animation, consider using gif.js or similar.
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     }
 }
 
+// 4.7. Handle Audio File
 function handleAudioFile(file) {
     audio = new Audio();
     audio.src = URL.createObjectURL(file);
@@ -262,27 +233,89 @@ function handleAudioFile(file) {
     source.connect(analyser);
     analyser.connect(audioContext.destination);
 
-    audio.addEventListener('play', () => {
-        startAudioVisualization();
-    });
-
     audio.addEventListener('ended', () => {
         stopAudioVisualization();
     });
 }
 
+// 4.8. Toggle Glitch Effect
+function toggleGlitch() {
+    isGlitch = !isGlitch;
+    glitchBtn.style.backgroundColor = isGlitch ? '#666' : '#444';
+}
+
+// 4.9. Toggle Analog Effect
+function toggleAnalog() {
+    isAnalog = !isAnalog;
+    analogBtn.style.backgroundColor = isAnalog ? '#666' : '#444';
+}
+
+// 4.10. Toggle Trails Effect
+function toggleTrails() {
+    isTrails = !isTrails;
+    trailsBtn.style.backgroundColor = isTrails ? '#666' : '#444';
+}
+
+// 4.11. Update Strobe Speed
+function updateStrobeSpeed(event) {
+    strobeSpeed = parseInt(event.target.value);
+    speedValueDisplay.textContent = strobeSpeed;
+    if (isStrobeActive) {
+        clearInterval(strobeInterval);
+        strobeInterval = setInterval(toggleStrobeVisibility, 1000 / strobeSpeed);
+    }
+}
+
+// 4.12. Update Strobe Color
+function updateStrobeColor(event) {
+    strobeColor = event.target.value;
+}
+
+// 4.13. Toggle Play/Pause Audio
+function togglePlayPause() {
+    if (!audio) return;
+
+    if (audio.paused) {
+        audio.play();
+        playPauseBtn.textContent = 'Pause';
+        startAudioVisualization();
+    } else {
+        audio.pause();
+        playPauseBtn.textContent = 'Play';
+    }
+}
+
+// 4.14. Stop Audio
+function stopAudio() {
+    if (!audio) return;
+
+    audio.pause();
+    audio.currentTime = 0;
+    playPauseBtn.textContent = 'Play';
+    stopAudioVisualization();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Notify visualization window to clear
+    if (broadcastChannel) {
+        broadcastChannel.postMessage({ type: 'clear' });
+    }
+}
+
+// 4.15. Start Audio Visualization
 function startAudioVisualization() {
     if (!analyser) return;
     previousEnergy = 0;
     detectBeats();
 }
 
+// 4.16. Stop Audio Visualization
 function stopAudioVisualization() {
-    if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
+    if (audioAnimationFrameId) {
+        cancelAnimationFrame(audioAnimationFrameId);
     }
 }
 
+// 4.17. Detect Beats
 function detectBeats() {
     if (!analyser) return;
 
@@ -308,11 +341,12 @@ function detectBeats() {
 
     previousEnergy = energy;
 
-    animationFrameId = requestAnimationFrame(detectBeats);
+    audioAnimationFrameId = requestAnimationFrame(detectBeats);
 }
 
+// 4.18. Trigger Random Effect
 function triggerRandomEffect() {
-    const effects = ['glitch', 'analog', 'trails', 'strobe'];
+    const effects = ['glitch', 'analog', 'trails', 'strobe', 'abstract'];
     const randomEffect = effects[Math.floor(Math.random() * effects.length)];
 
     switch (randomEffect) {
@@ -346,6 +380,14 @@ function triggerRandomEffect() {
                 toggleStrobe();
             }, 300);
             break;
+        case 'abstract':
+            if (!isAbstractActive) {
+                startAbstractMode();
+                setTimeout(() => {
+                    stopAbstractMode();
+                }, 3000); // Run abstract mode for 3 seconds
+            }
+            break;
         default:
             break;
     }
@@ -356,6 +398,7 @@ function triggerRandomEffect() {
     }
 }
 
+// 4.19. Apply Visual Effects
 function applyVisualEffects() {
     // Apply Glitch Effect
     if (isGlitch) {
@@ -377,8 +420,14 @@ function applyVisualEffects() {
         ctx.fillStyle = strobeColor;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
+
+    // Apply Abstract Effect
+    if (isAbstractActive) {
+        applyAbstractEffect();
+    }
 }
 
+// 4.20. Apply Glitch Effect
 function applyGlitchEffect() {
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
@@ -403,14 +452,16 @@ function applyGlitchEffect() {
     ctx.putImageData(imageData, 0, 0);
 }
 
+// 4.21. Apply Analog Effect
 function applyAnalogEffect() {
     // Simple color shifting with sine wave modulation
     ctx.globalCompositeOperation = 'multiply';
-    ctx.fillStyle = 'rgba(255, 0, 0, 0.05)'; // Red tint
+    ctx.fillStyle = 'rgba(0, 255, 255, 0.05)'; // Cyan tint
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.globalCompositeOperation = 'source-over';
 }
 
+// 4.22. Apply Trails Effect
 let trailsData = null;
 
 function applyTrailsEffect() {
@@ -426,15 +477,44 @@ function applyTrailsEffect() {
     }
 
     ctx.putImageData(trailsData, 0, 0);
-    ctx.drawImage(video || audioElement(), 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(video || (audio && audio.paused ? null : audio), 0, 0, canvas.width, canvas.height);
 }
 
-function audioElement() {
-    // Placeholder function if you want to overlay audio visualizations
-    return audio;
+// 4.23. Toggle Strobe Effect
+function toggleStrobe() {
+    isStrobeActive = !isStrobeActive;
+    if (isStrobeActive) {
+        strobeInterval = setInterval(toggleStrobeVisibility, 1000 / strobeSpeed);
+    } else {
+        clearInterval(strobeInterval);
+        strobeInterval = null;
+    }
 }
 
-// Video Recording Functions
+// 4.24. Toggle Strobe Visibility
+function toggleStrobeVisibility() {
+    showStrobe = !showStrobe;
+    if (showStrobe) {
+        ctx.fillStyle = strobeColor;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    } else {
+        // Clear the strobe by redrawing the media
+        if (video && !video.paused) {
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        } else if (audio && !audio.paused) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        } else {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+    }
+
+    // Send strobe state to visualization window if open
+    if (broadcastChannel) {
+        broadcastChannel.postMessage({ type: 'strobe', show: showStrobe, color: strobeColor });
+    }
+}
+
+// 4.25. Start Recording
 function startRecording() {
     if (!canvas.captureStream) {
         alert('Your browser does not support MediaRecorder API.');
@@ -464,6 +544,7 @@ function startRecording() {
     downloadVideoLink.style.display = 'none';
 }
 
+// 4.26. Stop Recording
 function stopRecording() {
     if (mediaRecorder && mediaRecorder.state !== 'inactive') {
         mediaRecorder.stop();
@@ -472,7 +553,7 @@ function stopRecording() {
     stopRecordingBtn.disabled = true;
 }
 
-// Live Visualization Functions
+// 4.27. Launch Visualization on Second Screen
 function launchVisualization() {
     if (visualizationWindow && !visualizationWindow.closed) {
         visualizationWindow.focus();
@@ -526,8 +607,8 @@ function launchVisualization() {
                         case 'trails':
                             applyTrailsEffect();
                             break;
-                        case 'strobe':
-                            applyStrobeEffect();
+                        case 'abstract':
+                            applyAbstractEffect();
                             break;
                         default:
                             break;
@@ -587,9 +668,61 @@ function launchVisualization() {
                     }
                 }
 
-                function applyStrobeEffect() {
-                    // Implement strobe effect if needed
+                // Abstract Effect in Visualization Window
+                function applyAbstractEffect() {
+                    // Implement a simple abstract effect
+                    const size = Math.random() * 50 + 10;
+                    const x = Math.random() * canvas.width;
+                    const y = Math.random() * canvas.height;
+                    const dx = (Math.random() - 0.5) * 5;
+                    const dy = (Math.random() - 0.5) * 5;
+                    const color = `hsl(${Math.random() * 360}, 100%, 50%)`;
+
+                    const shape = { x, y, dx, dy, size, color };
+
+                    abstractShapes.push(shape);
                 }
+
+                const abstractShapes = [];
+                const maxShapes = 100;
+
+                function applyAbstractEffectVisualization() {
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    abstractShapes.forEach((shape, index) => {
+                        ctx.beginPath();
+                        ctx.arc(shape.x, shape.y, shape.size, 0, Math.PI * 2);
+                        ctx.fillStyle = shape.color;
+                        ctx.fill();
+
+                        // Update position
+                        shape.x += shape.dx;
+                        shape.y += shape.dy;
+
+                        // Bounce off edges
+                        if (shape.x + shape.size > canvas.width || shape.x - shape.size < 0) {
+                            shape.dx *= -1;
+                        }
+                        if (shape.y + shape.size > canvas.height || shape.y - shape.size < 0) {
+                            shape.dy *= -1;
+                        }
+
+                        // Remove shapes that are too small
+                        if (shape.size < 1) {
+                            abstractShapes.splice(index, 1);
+                        }
+                    });
+
+                    // Limit number of shapes
+                    while (abstractShapes.length > maxShapes) {
+                        abstractShapes.shift();
+                    }
+
+                    requestAnimationFrame(applyAbstractEffectVisualization);
+                }
+
+                applyAbstractEffectVisualization(); // Start abstract visualization
             </script>
         </body>
         </html>
@@ -598,4 +731,154 @@ function launchVisualization() {
     // Initialize BroadcastChannel for communication
     broadcastChannel = new BroadcastChannel('visualization_channel');
 }
+
+// 4.28. Start Abstract Mode
+function startAbstractMode() {
+    if (isAbstractActive) return;
+
+    isAbstractActive = true;
+    startAbstractBtn.disabled = true;
+    stopAbstractBtn.disabled = false;
+
+    abstractAnimationFrameId = requestAnimationFrame(abstractLoop);
+}
+
+// 4.29. Stop Abstract Mode
+function stopAbstractMode() {
+    if (!isAbstractActive) return;
+
+    isAbstractActive = false;
+    startAbstractBtn.disabled = false;
+    stopAbstractBtn.disabled = true;
+
+    if (abstractAnimationFrameId) {
+        cancelAnimationFrame(abstractAnimationFrameId);
+        abstractAnimationFrameId = null;
+    }
+
+    // Clear abstract shapes
+    abstractShapes.length = 0;
+}
+
+// 4.30. Abstract Loop
+function abstractLoop() {
+    if (!isAbstractActive) return;
+
+    // Add new shapes randomly
+    if (Math.random() < 0.1) { // 10% chance to add a new shape each frame
+        addRandomShape();
+    }
+
+    // Update and draw shapes
+    updateAbstractShapes();
+
+    mainAnimationFrameId = requestAnimationFrame(abstractLoop);
+}
+
+// 4.31. Add Random Shape
+function addRandomShape() {
+    const size = Math.random() * 30 + 5;
+    const x = Math.random() * canvas.width;
+    const y = Math.random() * canvas.height;
+    const dx = (Math.random() - 0.5) * 4;
+    const dy = (Math.random() - 0.5) * 4;
+    const color = `hsl(${Math.random() * 360}, 100%, 50%)`;
+
+    const shape = { x, y, dx, dy, size, color };
+    abstractShapes.push(shape);
+
+    // Limit number of shapes
+    if (abstractShapes.length > maxShapes) {
+        abstractShapes.shift();
+    }
+}
+
+// 4.32. Update Abstract Shapes
+function updateAbstractShapes() {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    abstractShapes.forEach((shape, index) => {
+        // Draw shape
+        ctx.beginPath();
+        ctx.arc(shape.x, shape.y, shape.size, 0, Math.PI * 2);
+        ctx.fillStyle = shape.color;
+        ctx.fill();
+
+        // Update position
+        shape.x += shape.dx;
+        shape.y += shape.dy;
+
+        // Bounce off edges
+        if (shape.x + shape.size > canvas.width || shape.x - shape.size < 0) {
+            shape.dx *= -1;
+        }
+        if (shape.y + shape.size > canvas.height || shape.y - shape.size < 0) {
+            shape.dy *= -1;
+        }
+
+        // Optionally, reduce size over time
+        // shape.size *= 0.99;
+    });
+}
+
+// 4.33. Apply Abstract Effect (for visualization window)
+function applyAbstractEffect() {
+    // This function can be used to send abstract effect data to visualization window if needed
+    // Currently, abstract visuals are handled within the main window and visualization window independently
+}
+
+// ------------------------------
+// 5. Live Visualization via BroadcastChannel
+// ------------------------------
+
+// Broadcast messages to visualization window
+function sendEffectToVisualization(effect) {
+    if (broadcastChannel) {
+        broadcastChannel.postMessage({ type: 'effect', effect: effect });
+    }
+}
+
+function sendStrobeToVisualization(show, color) {
+    if (broadcastChannel) {
+        broadcastChannel.postMessage({ type: 'strobe', show: show, color: color });
+    }
+}
+
+// ------------------------------
+// 6. Performance Optimizations
+// ------------------------------
+
+// Limit canvas resolution if needed
+function setCanvasSize(width, height) {
+    canvas.width = width;
+    canvas.height = height;
+}
+
+// ------------------------------
+// 7. Cleanup on Page Unload
+// ------------------------------
+
+window.addEventListener('beforeunload', () => {
+    // Close visualization window if open
+    if (visualizationWindow && !visualizationWindow.closed) {
+        visualizationWindow.close();
+    }
+
+    // Close BroadcastChannel
+    if (broadcastChannel) {
+        broadcastChannel.close();
+    }
+
+    // Stop all animation frames
+    if (mainAnimationFrameId) {
+        cancelAnimationFrame(mainAnimationFrameId);
+    }
+    if (audioAnimationFrameId) {
+        cancelAnimationFrame(audioAnimationFrameId);
+    }
+    if (abstractAnimationFrameId) {
+        cancelAnimationFrame(abstractAnimationFrameId);
+    }
+});
 
