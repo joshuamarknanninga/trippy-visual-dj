@@ -11,7 +11,7 @@
     <h1>Trippy Effects App</h1>
     
     <!-- File Upload -->
-    <input type="file" id="fileInput" accept="image/gif,video/*">
+    <input type="file" id="fileInput" accept="image/gif,video/*,audio/*">
     
     <!-- Control Buttons -->
     <div id="controls">
@@ -28,6 +28,28 @@
             
             <label for="strobeColor">Color:</label>
             <input type="color" id="strobeColor" value="#FFFFFF">
+        </div>
+        
+        <!-- Audio Controls -->
+        <div id="audioControls">
+            <h3>Music Controls</h3>
+            <button id="playPauseBtn">Play</button>
+            <button id="stopBtn">Stop</button>
+        </div>
+        
+        <!-- Recording Controls -->
+        <div id="recordingControls">
+            <h3>Recording</h3>
+            <button id="startRecordBtn">Start Recording</button>
+            <button id="stopRecordBtn" disabled>Stop Recording</button>
+            <a id="downloadLink" href="#" download="trippy_effects_recording.webm" style="display:none;">Download Video</a>
+        </div>
+        
+        <!-- Live Display Control -->
+        <div id="liveDisplayControls">
+            <h3>Live Display</h3>
+            <button id="startLiveBtn">Start Live Display</button>
+            <button id="stopLiveBtn" disabled>Stop Live Display</button>
         </div>
     </div>
     
