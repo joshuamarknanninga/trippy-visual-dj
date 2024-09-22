@@ -9,18 +9,21 @@ const canvas = document.getElementById('mediaCanvas');
 const ctx = canvas.getContext('2d');
 
 const glitchBtn = document.getElementById('glitchBtn');
-const glitchIntensitySlider = document.getElementById('glitchIntensity');
-
 const analogBtn = document.getElementById('analogBtn');
-const analogIntensitySlider = document.getElementById('analogIntensity');
-
 const trailsBtn = document.getElementById('trailsBtn');
+
+const glitchIntensitySlider = document.getElementById('glitchIntensity');
+const glitchIntensityValue = document.getElementById('glitchIntensityValue');
+
+const analogIntensitySlider = document.getElementById('analogIntensity');
+const analogIntensityValue = document.getElementById('analogIntensityValue');
+
 const trailsIntensitySlider = document.getElementById('trailsIntensity');
+const trailsIntensityValue = document.getElementById('trailsIntensityValue');
 
 const strobeSpeedSlider = document.getElementById('strobeSpeed');
 const strobeColorPicker = document.getElementById('strobeColor');
 const speedValueDisplay = document.getElementById('speedValue');
-const strobeBtn = document.getElementById('strobeBtn');
 
 const playPauseBtn = document.getElementById('playPauseBtn');
 const stopBtn = document.getElementById('stopBtn');
@@ -31,16 +34,17 @@ const downloadVideoLink = document.getElementById('downloadVideoLink');
 
 const launchVisualizationBtn = document.getElementById('launchVisualizationBtn');
 
-const startAbstractBtn = document.getElementById('startAbstractBtn'); // New Button
-const stopAbstractBtn = document.getElementById('stopAbstractBtn');   // New Button
+const startAbstractBtn = document.getElementById('startAbstractBtn');
+const stopAbstractBtn = document.getElementById('stopAbstractBtn');
 
 // ------------------------------
 // 2. Initialize Variables
 // ------------------------------
 
 // Media Elements
-let video = null;
-let audio = null;
+let videoElement = null;
+let audioElement = null;
+let imageElement = null;
 
 // Animation Frames
 let mainAnimationFrameId = null;
@@ -59,11 +63,6 @@ let strobeInterval = null;
 let strobeSpeed = 5; // flashes per second
 let strobeColor = '#FFFFFF';
 let showStrobe = false;
-
-// Effect Intensities
-let glitchIntensity = 5;  // 1 to 10
-let analogIntensity = 5;  // 1 to 10
-let trailsIntensity = 5;  // 1 to 10
 
 // Audio Visualization Variables
 let audioContext = null;
@@ -84,7 +83,7 @@ let broadcastChannel = null;
 
 // Abstract Mode Variables
 const abstractShapes = [];
-const maxShapes = 50;
+const maxShapes = 100;
 
 // ------------------------------
 // 3. Event Listeners
@@ -93,20 +92,19 @@ const maxShapes = 50;
 // File Upload
 fileInput.addEventListener('change', handleFileUpload);
 
-// Effect Buttons and Sliders
+// Effect Buttons
 glitchBtn.addEventListener('click', toggleGlitch);
-glitchIntensitySlider.addEventListener('input', updateGlitchIntensity);
-
 analogBtn.addEventListener('click', toggleAnalog);
-analogIntensitySlider.addEventListener('input', updateAnalogIntensity);
-
 trailsBtn.addEventListener('click', toggleTrails);
+
+// Calibration Sliders
+glitchIntensitySlider.addEventListener('input', updateGlitchIntensity);
+analogIntensitySlider.addEventListener('input', updateAnalogIntensity);
 trailsIntensitySlider.addEventListener('input', updateTrailsIntensity);
 
 // Strobe Controls
 strobeSpeedSlider.addEventListener('input', updateStrobeSpeed);
 strobeColorPicker.addEventListener('input', updateStrobeColor);
-strobeBtn.addEventListener('click', toggleStrobe);
 
 // Audio Controls
 playPauseBtn.addEventListener('click', togglePlayPause);
@@ -138,14 +136,14 @@ function handleFileUpload(event) {
 
     if (file.type.startsWith('video/')) {
         handleVideoFile(file);
-    } else if (file.type === 'image/gif') {
-        handleGifFile(file);
+    } else if (file.type.startsWith('image/') || file.type === 'application/pdf') {
+        if (file.type === 'application/pdf') {
+            handlePDFFile(file);
+        } else {
+            handleImageFile(file);
+        }
     } else if (file.type.startsWith('audio/')) {
         handleAudioFile(file);
-    } else if (file.type === 'application/pdf') {
-        handlePdfFile(file);
-    } else if (file.type.startsWith('image/jpeg') || file.type.startsWith('image/jpg')) {
-        handleImageFile(file);
     } else {
         alert('Unsupported file type!');
     }
@@ -154,18 +152,23 @@ function handleFileUpload(event) {
 // 4.2. Clear Media
 function clearMedia() {
     // Stop and remove video
-    if (video) {
-        video.pause();
-        video.src = "";
-        video = null;
+    if (videoElement) {
+        videoElement.pause();
+        videoElement.src = "";
+        videoElement = null;
     }
 
     // Stop and remove audio
-    if (audio) {
-        audio.pause();
-        audio.src = "";
-        audio = null;
+    if (audioElement) {
+        audioElement.pause();
+        audioElement.src = "";
+        audioElement = null;
         stopAudioVisualization();
+    }
+
+    // Stop and remove image
+    if (imageElement) {
+        imageElement = null;
     }
 
     // Clear canvas
@@ -183,8 +186,14 @@ function clearEffects() {
     glitchBtn.style.backgroundColor = '#444';
     analogBtn.style.backgroundColor = '#444';
     trailsBtn.style.backgroundColor = '#444';
-    strobeBtn.style.backgroundColor = '#444';
-    stopAbstractBtn.disabled = true;
+
+    // Reset Calibration Sliders
+    glitchIntensitySlider.value = 0.5;
+    glitchIntensityValue.textContent = '0.5';
+    analogIntensitySlider.value = 0.5;
+    analogIntensityValue.textContent = '0.5';
+    trailsIntensitySlider.value = 0.5;
+    trailsIntensityValue.textContent = '0.5';
 
     // Stop strobe
     clearInterval(strobeInterval);
@@ -202,75 +211,99 @@ function clearEffects() {
 
 // 4.4. Handle Video File
 function handleVideoFile(file) {
-    video = document.createElement('video');
-    video.src = URL.createObjectURL(file);
-    video.crossOrigin = 'anonymous';
-    video.loop = true;
-    video.muted = true;
-    video.play();
+    videoElement = document.createElement('video');
+    videoElement.src = URL.createObjectURL(file);
+    videoElement.crossOrigin = 'anonymous';
+    videoElement.loop = true;
+    videoElement.muted = true;
+    videoElement.play();
 
-    video.addEventListener('loadeddata', () => {
-        setCanvasSize(video.videoWidth, video.videoHeight);
+    videoElement.addEventListener('loadeddata', () => {
+        canvas.width = videoElement.videoWidth;
+        canvas.height = videoElement.videoHeight;
         mainAnimationFrameId = requestAnimationFrame(drawVideoFrame);
     });
 }
 
-// 4.5. Handle Image File (JPEG, JPG)
-function handleImageFile(file) {
-    const img = new Image();
-    img.src = URL.createObjectURL(file);
-    img.onload = () => {
-        setCanvasSize(img.width, img.height);
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    }
+// 4.5. Draw Video Frame
+function drawVideoFrame() {
+    if (!videoElement) return;
+    ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+
+    // Apply visual effects
+    applyVisualEffects();
+
+    mainAnimationFrameId = requestAnimationFrame(drawVideoFrame);
 }
 
-// 4.6. Handle GIF File
-function handleGifFile(file) {
-    const img = new Image();
-    img.src = URL.createObjectURL(file);
-    img.onload = () => {
-        setCanvasSize(img.width, img.height);
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+// 4.6. Handle Image File
+function handleImageFile(file) {
+    imageElement = new Image();
+    imageElement.src = URL.createObjectURL(file);
+    imageElement.onload = () => {
+        canvas.width = imageElement.width;
+        canvas.height = imageElement.height;
+        ctx.drawImage(imageElement, 0, 0, canvas.width, canvas.height);
     }
 }
 
 // 4.7. Handle PDF File
-function handlePdfFile(file) {
+function handlePDFFile(file) {
     const fileReader = new FileReader();
     fileReader.onload = function() {
         const typedarray = new Uint8Array(this.result);
 
-        pdfjsLib.getDocument(typedarray).promise.then(function(pdf) {
-            // Fetch the first page
-            pdf.getPage(1).then(function(page) {
-                const viewport = page.getViewport({ scale: 1.5 });
-                setCanvasSize(viewport.width, viewport.height);
-                const renderContext = {
-                    canvasContext: ctx,
-                    viewport: viewport
-                };
-                page.render(renderContext).promise.then(function() {
-                    // Page rendered, you can apply effects here if needed
+        if (pdfjsLib) {
+            pdfjsLib.getDocument(typedarray).promise.then(function(pdf) {
+                // Fetch the first page
+                pdf.getPage(1).then(function(page) {
+                    const viewport = page.getViewport({ scale: 1.5 });
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+
+                    const renderContext = {
+                        canvasContext: ctx,
+                        viewport: viewport
+                    };
+                    page.render(renderContext);
                 });
+            }, function(reason) {
+                console.error(reason);
             });
-        }, function(reason) {
-            console.error(reason);
-            alert('Error loading PDF');
-        });
+        } else {
+            alert('PDF.js library is not loaded.');
+        }
     };
     fileReader.readAsArrayBuffer(file);
 }
 
-// 4.8. Toggle Glitch Effect
+// 4.8. Handle Audio File
+function handleAudioFile(file) {
+    audioElement = new Audio();
+    audioElement.src = URL.createObjectURL(file);
+    audioElement.crossOrigin = 'anonymous';
+    audioElement.loop = true;
+
+    // Initialize Audio Context
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioContext.createAnalyser();
+    analyser.fftSize = 256;
+    bufferLength = analyser.frequencyBinCount;
+    dataArray = new Uint8Array(bufferLength);
+
+    source = audioContext.createMediaElementSource(audioElement);
+    source.connect(analyser);
+    analyser.connect(audioContext.destination);
+
+    audioElement.addEventListener('ended', () => {
+        stopAudioVisualization();
+    });
+}
+
+// 4.9. Toggle Glitch Effect
 function toggleGlitch() {
     isGlitch = !isGlitch;
     glitchBtn.style.backgroundColor = isGlitch ? '#666' : '#444';
-}
-
-// 4.9. Update Glitch Intensity
-function updateGlitchIntensity(event) {
-    glitchIntensity = parseInt(event.target.value);
 }
 
 // 4.10. Toggle Analog Effect
@@ -279,23 +312,37 @@ function toggleAnalog() {
     analogBtn.style.backgroundColor = isAnalog ? '#666' : '#444';
 }
 
-// 4.11. Update Analog Intensity
-function updateAnalogIntensity(event) {
-    analogIntensity = parseInt(event.target.value);
-}
-
-// 4.12. Toggle Trails Effect
+// 4.11. Toggle Trails Effect
 function toggleTrails() {
     isTrails = !isTrails;
     trailsBtn.style.backgroundColor = isTrails ? '#666' : '#444';
 }
 
-// 4.13. Update Trails Intensity
-function updateTrailsIntensity(event) {
-    trailsIntensity = parseInt(event.target.value);
+// 4.12. Update Glitch Intensity
+function updateGlitchIntensity(event) {
+    const value = parseFloat(event.target.value);
+    glitchIntensityValue.textContent = value.toFixed(2);
+    // Store the intensity value
+    canvas.glitchIntensity = value;
 }
 
-// 4.14. Update Strobe Speed
+// 4.13. Update Analog Intensity
+function updateAnalogIntensity(event) {
+    const value = parseFloat(event.target.value);
+    analogIntensityValue.textContent = value.toFixed(2);
+    // Store the intensity value
+    canvas.analogIntensity = value;
+}
+
+// 4.14. Update Trails Intensity
+function updateTrailsIntensity(event) {
+    const value = parseFloat(event.target.value);
+    trailsIntensityValue.textContent = value.toFixed(2);
+    // Store the intensity value
+    canvas.trailsIntensity = value;
+}
+
+// 4.15. Update Strobe Speed
 function updateStrobeSpeed(event) {
     strobeSpeed = parseInt(event.target.value);
     speedValueDisplay.textContent = strobeSpeed;
@@ -305,15 +352,225 @@ function updateStrobeSpeed(event) {
     }
 }
 
-// 4.15. Update Strobe Color
+// 4.16. Update Strobe Color
 function updateStrobeColor(event) {
     strobeColor = event.target.value;
 }
 
-// 4.16. Toggle Strobe Effect
+// 4.17. Toggle Play/Pause Audio
+function togglePlayPause() {
+    if (!audioElement) return;
+
+    if (audioElement.paused) {
+        audioElement.play();
+        playPauseBtn.textContent = 'Pause';
+        startAudioVisualization();
+    } else {
+        audioElement.pause();
+        playPauseBtn.textContent = 'Play';
+    }
+}
+
+// 4.18. Stop Audio
+function stopAudio() {
+    if (!audioElement) return;
+
+    audioElement.pause();
+    audioElement.currentTime = 0;
+    playPauseBtn.textContent = 'Play';
+    stopAudioVisualization();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Notify visualization window to clear
+    if (broadcastChannel) {
+        broadcastChannel.postMessage({ type: 'clear' });
+    }
+}
+
+// 4.19. Start Audio Visualization
+function startAudioVisualization() {
+    if (!analyser) return;
+    previousEnergy = 0;
+    detectBeats();
+}
+
+// 4.20. Stop Audio Visualization
+function stopAudioVisualization() {
+    if (audioAnimationFrameId) {
+        cancelAnimationFrame(audioAnimationFrameId);
+    }
+}
+
+// 4.21. Detect Beats
+function detectBeats() {
+    if (!analyser) return;
+
+    analyser.getByteFrequencyData(dataArray);
+
+    // Calculate the average frequency
+    let sum = 0;
+    for (let i = 0; i < bufferLength; i++) {
+        sum += dataArray[i];
+    }
+    let average = sum / bufferLength;
+
+    // Energy is the sum of squares of frequencies
+    let energy = 0;
+    for (let i = 0; i < bufferLength; i++) {
+        energy += dataArray[i] * dataArray[i];
+    }
+
+    // Simple beat detection
+    if (energy > previousEnergy * beatThreshold) {
+        triggerRandomEffect();
+    }
+
+    previousEnergy = energy;
+
+    audioAnimationFrameId = requestAnimationFrame(detectBeats);
+}
+
+// 4.22. Trigger Random Effect
+function triggerRandomEffect() {
+    const effects = ['glitch', 'analog', 'trails', 'strobe', 'abstract'];
+    const randomEffect = effects[Math.floor(Math.random() * effects.length)];
+
+    switch (randomEffect) {
+        case 'glitch':
+            isGlitch = true;
+            glitchBtn.style.backgroundColor = '#666';
+            setTimeout(() => {
+                isGlitch = false;
+                glitchBtn.style.backgroundColor = '#444';
+            }, 300);
+            break;
+        case 'analog':
+            isAnalog = true;
+            analogBtn.style.backgroundColor = '#666';
+            setTimeout(() => {
+                isAnalog = false;
+                analogBtn.style.backgroundColor = '#444';
+            }, 300);
+            break;
+        case 'trails':
+            isTrails = true;
+            trailsBtn.style.backgroundColor = '#666';
+            setTimeout(() => {
+                isTrails = false;
+                trailsBtn.style.backgroundColor = '#444';
+            }, 300);
+            break;
+        case 'strobe':
+            toggleStrobe();
+            setTimeout(() => {
+                toggleStrobe();
+            }, 300);
+            break;
+        case 'abstract':
+            if (!isAbstractActive) {
+                startAbstractMode();
+                setTimeout(() => {
+                    stopAbstractMode();
+                }, 3000); // Run abstract mode for 3 seconds
+            }
+            break;
+        default:
+            break;
+    }
+
+    // Send effect trigger to visualization window if open
+    if (broadcastChannel) {
+        broadcastChannel.postMessage({ type: 'effect', effect: randomEffect });
+    }
+}
+
+// 4.23. Apply Visual Effects
+function applyVisualEffects() {
+    // Apply Glitch Effect
+    if (isGlitch) {
+        applyGlitchEffect();
+    }
+
+    // Apply Analog Effect
+    if (isAnalog) {
+        applyAnalogEffect();
+    }
+
+    // Apply Trails Effect
+    if (isTrails) {
+        applyTrailsEffect();
+    }
+
+    // Apply Strobe Effect
+    if (showStrobe) {
+        ctx.fillStyle = strobeColor;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // Apply Abstract Effect
+    if (isAbstractActive) {
+        applyAbstractEffect();
+    }
+}
+
+// 4.24. Apply Glitch Effect
+function applyGlitchEffect() {
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    const glitchIntensity = glitchIntensitySlider.value; // 0 to 1
+
+    const glitchAmount = Math.floor(10 * glitchIntensity); // Number of glitch lines
+
+    for (let i = 0; i < glitchAmount; i++) {
+        const y = Math.floor(Math.random() * canvas.height);
+        const x = Math.floor(Math.random() * canvas.width);
+        const width = Math.floor(Math.random() * 20 * glitchIntensity); // Width of glitch strip
+        const height = 1;
+
+        // Randomly shift the pixels horizontally
+        const shift = Math.floor(Math.random() * 20 * glitchIntensity) - 10 * glitchIntensity;
+
+        for (let w = 0; w < width; w++) {
+            const srcX = x + w;
+            const destX = srcX + shift;
+
+            if (destX >= 0 && destX < canvas.width) {
+                for (let h = 0; h < height; h++) {
+                    const srcIndex = ((y + h) * canvas.width + srcX) * 4;
+                    const destIndex = ((y + h) * canvas.width + destX) * 4;
+
+                    // Swap RGB values
+                    data[destIndex] = data[srcIndex];
+                    // data[srcIndex + 1] = data[srcIndex + 1]; // Green remains the same
+                    // data[srcIndex + 2] = data[srcIndex + 2]; // Blue remains the same
+                    // Alpha remains the same
+                }
+            }
+        }
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+}
+
+// 4.25. Apply Analog Effect
+function applyAnalogEffect() {
+    const analogIntensity = analogIntensitySlider.value; // 0 to 1
+    ctx.globalCompositeOperation = 'overlay';
+    ctx.fillStyle = `rgba(0, 255, 255, ${analogIntensity * 0.1})`; // Cyan tint with adjustable opacity
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.globalCompositeOperation = 'source-over';
+}
+
+// 4.26. Apply Trails Effect
+function applyTrailsEffect() {
+    const trailsIntensity = trailsIntensitySlider.value; // 0 to 1
+    ctx.fillStyle = `rgba(0, 0, 0, ${1 - trailsIntensity * 0.1})`; // Lower alpha means longer trails
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+// 4.27. Toggle Strobe Effect
 function toggleStrobe() {
     isStrobeActive = !isStrobeActive;
-    strobeBtn.style.backgroundColor = isStrobeActive ? '#666' : '#444';
     if (isStrobeActive) {
         strobeInterval = setInterval(toggleStrobeVisibility, 1000 / strobeSpeed);
     } else {
@@ -322,7 +579,7 @@ function toggleStrobe() {
     }
 }
 
-// 4.17. Toggle Strobe Visibility
+// 4.28. Toggle Strobe Visibility
 function toggleStrobeVisibility() {
     showStrobe = !showStrobe;
     if (showStrobe) {
@@ -330,9 +587,12 @@ function toggleStrobeVisibility() {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
     } else {
         // Clear the strobe by redrawing the media
-        if (video && !video.paused) {
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        } else if (audio && !audio.paused) {
+        if (videoElement && !videoElement.paused) {
+            ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+        } else if (imageElement) {
+            ctx.drawImage(imageElement, 0, 0, canvas.width, canvas.height);
+        } else if (audioElement && !audioElement.paused) {
+            // Optionally, you can leave trails or clear
             ctx.clearRect(0, 0, canvas.width, canvas.height);
         } else {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -345,387 +605,7 @@ function toggleStrobeVisibility() {
     }
 }
 
-// 4.18. Toggle Play/Pause Audio
-function togglePlayPause() {
-    if (!audio) return;
-
-    if (audio.paused) {
-        audio.play();
-        playPauseBtn.textContent = 'Pause';
-        startAudioVisualization();
-    } else {
-        audio.pause();
-        playPauseBtn.textContent = 'Play';
-    }
-}
-
-// 4.19. Stop Audio
-function stopAudio() {
-    if (!audio) return;
-
-    audio.pause();
-    audio.currentTime = 0;
-    playPauseBtn.textContent = 'Play';
-    stopAudioVisualization();
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Notify visualization window to clear
-    if (broadcastChannel) {
-        broadcastChannel.postMessage({ type: 'clear' });
-    }
-}
-
-// 4.20. Start Audio Visualization
-function startAudioVisualization() {
-    if (!analyser) return;
-    previousEnergy = 0;
-    detectBeats();
-}
-
-// 4.21. Stop Audio Visualization
-function stopAudioVisualization() {
-    if (audioAnimationFrameId) {
-        cancelAnimationFrame(audioAnimationFrameId);
-        audioAnimationFrameId = null;
-    }
-}
-
-// 4.22. Detect Beats
-function detectBeats() {
-    if (!analyser) return;
-
-    analyser.getByteFrequencyData(dataArray);
-
-    // Calculate the average frequency
-    let sum = 0;
-    for (let i = 0; i < bufferLength; i++) {
-        sum += dataArray[i];
-    }
-    let average = sum / bufferLength;
-
-    // Energy is the sum of squares of frequencies
-    let energy = 0;
-    for (let i = 0; i < bufferLength; i++) {
-        energy += dataArray[i] * dataArray[i];
-    }
-
-    // Simple beat detection
-    if (energy > previousEnergy * beatThreshold) {
-        triggerRandomEffect();
-    }
-
-    previousEnergy = energy;
-
-    audioAnimationFrameId = requestAnimationFrame(detectBeats);
-}
-
-// 4.23. Trigger Random Effect
-function triggerRandomEffect() {
-    const effects = ['glitch', 'analog', 'trails', 'strobe', 'abstract'];
-    const randomEffect = effects[Math.floor(Math.random() * effects.length)];
-
-    switch (randomEffect) {
-        case 'glitch':
-            isGlitch = true;
-            glitchBtn.style.backgroundColor = '#666';
-            setTimeout(() => {
-                isGlitch = false;
-                glitchBtn.style.backgroundColor = '#444';
-            }, 300);
-            break;
-        case 'analog':
-            isAnalog = true;
-            analogBtn.style.backgroundColor = '#666';
-            setTimeout(() => {
-                isAnalog = false;
-                analogBtn.style.backgroundColor = '#444';
-            }, 300);
-            break;
-        case 'trails':
-            isTrails = true;
-            trailsBtn.style.backgroundColor = '#666';
-            setTimeout(() => {
-                isTrails = false;
-                trailsBtn.style.backgroundColor = '#444';
-            }, 300);
-            break;
-        case 'strobe':
-            toggleStrobe();
-            setTimeout(() => {
-                toggleStrobe();
-            }, 300);
-            break;
-        case 'abstract':
-            if (!isAbstractActive) {
-                startAbstractMode();
-                setTimeout(() => {
-                    stopAbstractMode();
-                }, 3000); // Run abstract mode for 3 seconds
-            }
-            break;
-        default:
-            break;
-    }
-
-    // Send effect trigger to visualization window if open
-    if (broadcastChannel) {
-        broadcastChannel.postMessage({ type: 'effect', effect: randomEffect });
-    }
-}
-
-// 4.24. Apply Visual Effects
-function applyVisualEffects() {
-    // Apply Glitch Effect
-    if (isGlitch) {
-        applyGlitchEffect();
-    }
-
-    // Apply Analog Effect
-    if (isAnalog) {
-        applyAnalogEffect();
-    }
-
-    // Apply Trails Effect
-    if (isTrails) {
-        applyTrailsEffect();
-    }
-
-    // Apply Strobe Effect
-    if (showStrobe) {
-        ctx.fillStyle = strobeColor;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
-
-    // Apply Abstract Effect
-    if (isAbstractActive) {
-        applyAbstractEffect();
-    }
-}
-
-// 4.25. Apply Glitch Effect
-function applyGlitchEffect() {
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imageData.data;
-
-    const glitchLines = glitchIntensity; // Number of glitch lines based on intensity
-
-    for (let i = 0; i < glitchLines; i++) {
-        const y = Math.floor(Math.random() * canvas.height);
-        const start = y * canvas.width * 4;
-        const length = Math.floor(Math.random() * canvas.width / 2) + 1;
-        const offset = Math.floor(Math.random() * 100);
-
-        for (let x = 0; x < length; x++) {
-            const index = start + x * 4;
-            if (index + offset * 4 < data.length) {
-                // Randomly decide to glitch R, G, or B channel
-                const channel = Math.floor(Math.random() * 3);
-                data[index + channel] = data[index + offset * 4 + channel];
-            }
-        }
-    }
-
-    ctx.putImageData(imageData, 0, 0);
-}
-
-// 4.26. Apply Analog Effect
-function applyAnalogEffect() {
-    // Adjust the intensity by changing the alpha value
-    const alpha = analogIntensity / 10 * 0.1; // Max alpha 0.1
-
-    ctx.globalCompositeOperation = 'multiply';
-    ctx.fillStyle = `rgba(0, 255, 255, ${alpha})`; // Cyan tint
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.globalCompositeOperation = 'source-over';
-}
-
-// 4.27. Apply Trails Effect
-function applyTrailsEffect() {
-    // Adjust the intensity by changing the fade factor
-    const fadeFactor = trailsIntensity / 10 * 0.05; // Max fade 0.05
-
-    ctx.fillStyle = `rgba(0, 0, 0, ${fadeFactor})`;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Redraw the media on top
-    if (video && !video.paused) {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    } else if (audio && !audio.paused) {
-        // Optionally, visualize audio
-        ctx.drawImage(audioElement(), 0, 0, canvas.width, canvas.height);
-    }
-}
-
-// 4.28. Toggle Play/Pause Audio
-function togglePlayPause() {
-    if (!audio) return;
-
-    if (audio.paused) {
-        audio.play();
-        playPauseBtn.textContent = 'Pause';
-        startAudioVisualization();
-    } else {
-        audio.pause();
-        playPauseBtn.textContent = 'Play';
-    }
-}
-
-// 4.29. Stop Audio
-function stopAudio() {
-    if (!audio) return;
-
-    audio.pause();
-    audio.currentTime = 0;
-    playPauseBtn.textContent = 'Play';
-    stopAudioVisualization();
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Notify visualization window to clear
-    if (broadcastChannel) {
-        broadcastChannel.postMessage({ type: 'clear' });
-    }
-}
-
-// 4.30. Start Audio Visualization
-function startAudioVisualization() {
-    if (!analyser) return;
-    previousEnergy = 0;
-    detectBeats();
-}
-
-// 4.31. Stop Audio Visualization
-function stopAudioVisualization() {
-    if (audioAnimationFrameId) {
-        cancelAnimationFrame(audioAnimationFrameId);
-        audioAnimationFrameId = null;
-    }
-}
-
-// 4.32. Detect Beats
-function detectBeats() {
-    if (!analyser) return;
-
-    analyser.getByteFrequencyData(dataArray);
-
-    // Calculate the average frequency
-    let sum = 0;
-    for (let i = 0; i < bufferLength; i++) {
-        sum += dataArray[i];
-    }
-    let average = sum / bufferLength;
-
-    // Energy is the sum of squares of frequencies
-    let energy = 0;
-    for (let i = 0; i < bufferLength; i++) {
-        energy += dataArray[i] * dataArray[i];
-    }
-
-    // Simple beat detection
-    if (energy > previousEnergy * beatThreshold) {
-        triggerRandomEffect();
-    }
-
-    previousEnergy = energy;
-
-    audioAnimationFrameId = requestAnimationFrame(detectBeats);
-}
-
-// 4.33. Trigger Random Effect
-function triggerRandomEffect() {
-    const effects = ['glitch', 'analog', 'trails', 'strobe', 'abstract'];
-    const randomEffect = effects[Math.floor(Math.random() * effects.length)];
-
-    switch (randomEffect) {
-        case 'glitch':
-            isGlitch = true;
-            glitchBtn.style.backgroundColor = '#666';
-            setTimeout(() => {
-                isGlitch = false;
-                glitchBtn.style.backgroundColor = '#444';
-            }, 300);
-            break;
-        case 'analog':
-            isAnalog = true;
-            analogBtn.style.backgroundColor = '#666';
-            setTimeout(() => {
-                isAnalog = false;
-                analogBtn.style.backgroundColor = '#444';
-            }, 300);
-            break;
-        case 'trails':
-            isTrails = true;
-            trailsBtn.style.backgroundColor = '#666';
-            setTimeout(() => {
-                isTrails = false;
-                trailsBtn.style.backgroundColor = '#444';
-            }, 300);
-            break;
-        case 'strobe':
-            toggleStrobe();
-            setTimeout(() => {
-                toggleStrobe();
-            }, 300);
-            break;
-        case 'abstract':
-            if (!isAbstractActive) {
-                startAbstractMode();
-                setTimeout(() => {
-                    stopAbstractMode();
-                }, 3000); // Run abstract mode for 3 seconds
-            }
-            break;
-        default:
-            break;
-    }
-
-    // Send effect trigger to visualization window if open
-    if (broadcastChannel) {
-        broadcastChannel.postMessage({ type: 'effect', effect: randomEffect });
-    }
-}
-
-// 4.34. Apply Visual Effects
-function applyVisualEffects() {
-    // Apply Glitch Effect
-    if (isGlitch) {
-        applyGlitchEffect();
-    }
-
-    // Apply Analog Effect
-    if (isAnalog) {
-        applyAnalogEffect();
-    }
-
-    // Apply Trails Effect
-    if (isTrails) {
-        applyTrailsEffect();
-    }
-
-    // Apply Strobe Effect
-    if (showStrobe) {
-        ctx.fillStyle = strobeColor;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
-
-    // Apply Abstract Effect
-    if (isAbstractActive) {
-        applyAbstractEffect();
-    }
-}
-
-// 4.35. Apply Abstract Effect
-function applyAbstractEffect() {
-    // Create random pixelations that draw out things or are random
-    const pixelSize = Math.random() * 10 + 5; // Size between 5 and 15
-    const x = Math.floor(Math.random() * canvas.width);
-    const y = Math.floor(Math.random() * canvas.height);
-    const color = `hsl(${Math.random() * 360}, 100%, 50%)`;
-
-    ctx.fillStyle = color;
-    ctx.fillRect(x, y, pixelSize, pixelSize);
-}
-
-// 4.36. Start Recording
+// 4.29. Start Recording
 function startRecording() {
     if (!canvas.captureStream) {
         alert('Your browser does not support MediaRecorder API.');
@@ -755,7 +635,7 @@ function startRecording() {
     downloadVideoLink.style.display = 'none';
 }
 
-// 4.37. Stop Recording
+// 4.30. Stop Recording
 function stopRecording() {
     if (mediaRecorder && mediaRecorder.state !== 'inactive') {
         mediaRecorder.stop();
@@ -764,7 +644,7 @@ function stopRecording() {
     stopRecordingBtn.disabled = true;
 }
 
-// 4.38. Launch Visualization on Second Screen
+// 4.31. Launch Visualization on Second Screen
 function launchVisualization() {
     if (visualizationWindow && !visualizationWindow.closed) {
         visualizationWindow.focus();
@@ -829,61 +709,134 @@ function launchVisualization() {
 
                 function applyGlitchEffect() {
                     // Implement a simple glitch effect
-                    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                    const data = imgData.data;
-                    const glitchLines = 10; // Fixed number for visualization
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const data = imageData.data;
+                    const glitchIntensity = 0.5; // Fixed intensity for visualization window
 
-                    for (let i = 0; i < glitchLines; i++) {
+                    const glitchAmount = Math.floor(10 * glitchIntensity); // Number of glitch lines
+
+                    for (let i = 0; i < glitchAmount; i++) {
                         const y = Math.floor(Math.random() * canvas.height);
-                        const start = y * canvas.width * 4;
-                        const length = Math.floor(Math.random() * canvas.width / 2) + 1;
-                        const offset = Math.floor(Math.random() * 100);
+                        const x = Math.floor(Math.random() * canvas.width);
+                        const width = Math.floor(Math.random() * 20 * glitchIntensity); // Width of glitch strip
+                        const height = 1;
 
-                        for (let x = 0; x < length; x++) {
-                            const index = start + x * 4;
-                            if (index + offset * 4 < data.length) {
-                                // Randomly decide to glitch R, G, or B channel
-                                const channel = Math.floor(Math.random() * 3);
-                                data[index + channel] = data[index + offset * 4 + channel];
+                        // Randomly shift the pixels horizontally
+                        const shift = Math.floor(Math.random() * 20 * glitchIntensity) - 10 * glitchIntensity;
+
+                        for (let w = 0; w < width; w++) {
+                            const srcX = x + w;
+                            const destX = srcX + shift;
+
+                            if (destX >= 0 && destX < canvas.width) {
+                                for (let h = 0; h < height; h++) {
+                                    const srcIndex = ((y + h) * canvas.width + srcX) * 4;
+                                    const destIndex = ((y + h) * canvas.width + destX) * 4;
+
+                                    // Swap RGB values
+                                    data[destIndex] = data[srcIndex];
+                                    // data[srcIndex + 1] = data[srcIndex + 1]; // Green remains the same
+                                    // data[srcIndex + 2] = data[srcIndex + 2]; // Blue remains the same
+                                    // Alpha remains the same
+                                }
                             }
                         }
                     }
 
-                    ctx.putImageData(imgData, 0, 0);
+                    ctx.putImageData(imageData, 0, 0);
                 }
 
                 function applyAnalogEffect() {
                     // Apply a color overlay
-                    ctx.globalCompositeOperation = 'multiply';
-                    ctx.fillStyle = 'rgba(0, 255, 255, 0.05)'; // Cyan tint
+                    ctx.globalCompositeOperation = 'overlay';
+                    ctx.fillStyle = 'rgba(0, 255, 255, 0.05)'; // Cyan tint with fixed opacity
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
                     ctx.globalCompositeOperation = 'source-over';
                 }
 
                 function applyTrailsEffect() {
-                    // Fade the previous frame
-                    ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+                    const trailsIntensity = 0.5; // Fixed intensity for visualization window
+                    ctx.fillStyle = 'rgba(0, 0, 0, ' + (1 - trailsIntensity * 0.1) + ')';
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
                 }
 
+                // Handle Strobe Effect
+                let strobeInterval = null;
+                let showStrobe = false;
+                let strobeColor = '#FFFFFF';
+                let strobeSpeed = 5;
+
                 function handleStrobe(show, color) {
                     if (show) {
-                        ctx.fillStyle = color;
-                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        strobeColor = color;
+                        strobeSpeed = 5; // Fixed speed for visualization window
+                        strobeInterval = setInterval(() => {
+                            showStrobe = !showStrobe;
+                            if (showStrobe) {
+                                ctx.fillStyle = strobeColor;
+                                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                            } else {
+                                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                            }
+                        }, 1000 / strobeSpeed);
                     } else {
+                        clearInterval(strobeInterval);
+                        strobeInterval = null;
                         ctx.clearRect(0, 0, canvas.width, canvas.height);
                     }
                 }
 
                 // Abstract Effect
-                function applyAbstractEffect() {
-                    const pixelSize = Math.random() * 10 + 5; // Size between 5 and 15
-                    const x = Math.floor(Math.random() * canvas.width);
-                    const y = Math.floor(Math.random() * canvas.height);
-                    const color = \`hsl(\${Math.random() * 360}, 100%, 50%)\`;
+                const abstractShapes = [];
+                const maxShapes = 100;
 
-                    ctx.fillStyle = color;
-                    ctx.fillRect(x, y, pixelSize, pixelSize);
+                function applyAbstractEffect() {
+                    const size = Math.random() * 50 + 10;
+                    const x = Math.random() * canvas.width;
+                    const y = Math.random() * canvas.height;
+                    const dx = (Math.random() - 0.5) * 5;
+                    const dy = (Math.random() - 0.5) * 5;
+                    const color = 'hsl(' + (Math.random() * 360) + ', 100%, 50%)';
+
+                    const shape = { x, y, dx, dy, size, color };
+                    abstractShapes.push(shape);
+
+                    // Limit number of shapes
+                    if (abstractShapes.length > maxShapes) {
+                        abstractShapes.shift();
+                    }
+
+                    animateAbstractShapes();
+                }
+
+                function animateAbstractShapes() {
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    abstractShapes.forEach((shape, index) => {
+                        // Draw shape
+                        ctx.beginPath();
+                        ctx.arc(shape.x, shape.y, shape.size, 0, Math.PI * 2);
+                        ctx.fillStyle = shape.color;
+                        ctx.fill();
+
+                        // Update position
+                        shape.x += shape.dx;
+                        shape.y += shape.dy;
+
+                        // Bounce off edges
+                        if (shape.x + shape.size > canvas.width || shape.x - shape.size < 0) {
+                            shape.dx *= -1;
+                        }
+                        if (shape.y + shape.size > canvas.height || shape.y - shape.size < 0) {
+                            shape.dy *= -1;
+                        }
+
+                        // Optionally, reduce size over time
+                        // shape.size *= 0.99;
+                    });
+
+                    requestAnimationFrame(animateAbstractShapes);
                 }
             </script>
         </body>
@@ -894,7 +847,7 @@ function launchVisualization() {
     broadcastChannel = new BroadcastChannel('visualization_channel');
 }
 
-// 4.39. Start Abstract Mode
+// 4.32. Start Abstract Mode
 function startAbstractMode() {
     if (isAbstractActive) return;
 
@@ -905,7 +858,7 @@ function startAbstractMode() {
     abstractAnimationFrameId = requestAnimationFrame(abstractLoop);
 }
 
-// 4.40. Stop Abstract Mode
+// 4.33. Stop Abstract Mode
 function stopAbstractMode() {
     if (!isAbstractActive) return;
 
@@ -920,42 +873,121 @@ function stopAbstractMode() {
 
     // Clear abstract shapes
     abstractShapes.length = 0;
+
+    // Optionally, clear the canvas or redraw media
+    if (videoElement && !videoElement.paused) {
+        ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+    } else if (imageElement) {
+        ctx.drawImage(imageElement, 0, 0, canvas.width, canvas.height);
+    } else if (audioElement && !audioElement.paused) {
+        // Optionally, you can leave trails or clear
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    } else {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // Notify visualization window to clear
+    if (broadcastChannel) {
+        broadcastChannel.postMessage({ type: 'clear' });
+    }
 }
 
-// 4.41. Abstract Loop
+// 4.34. Abstract Loop
 function abstractLoop() {
     if (!isAbstractActive) return;
 
-    // Add new pixelations randomly
-    if (Math.random() < 0.1) { // 10% chance to add a new pixelation each frame
-        addRandomPixelation();
+    // Add new shapes randomly
+    if (Math.random() < 0.1) { // 10% chance to add a new shape each frame
+        addRandomShape();
     }
 
-    // Continue the loop
+    // Update and draw shapes
+    updateAbstractShapes();
+
     abstractAnimationFrameId = requestAnimationFrame(abstractLoop);
 }
 
-// 4.42. Add Random Pixelation
-function addRandomPixelation() {
-    const pixelSize = Math.random() * 10 + 5; // Size between 5 and 15
-    const x = Math.floor(Math.random() * canvas.width);
-    const y = Math.floor(Math.random() * canvas.height);
+// 4.35. Add Random Shape
+function addRandomShape() {
+    const size = Math.random() * 30 + 5;
+    const x = Math.random() * canvas.width;
+    const y = Math.random() * canvas.height;
+    const dx = (Math.random() - 0.5) * 4;
+    const dy = (Math.random() - 0.5) * 4;
     const color = `hsl(${Math.random() * 360}, 100%, 50%)`;
 
-    ctx.fillStyle = color;
-    ctx.fillRect(x, y, pixelSize, pixelSize);
+    const shape = { x, y, dx, dy, size, color };
+    abstractShapes.push(shape);
 
-    // Optionally, create lines or patterns
-    if (Math.random() < 0.5) { // 50% chance to draw a line
-        ctx.strokeStyle = color;
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(x + pixelSize, y + pixelSize);
-        ctx.stroke();
+    // Limit number of shapes
+    if (abstractShapes.length > maxShapes) {
+        abstractShapes.shift();
     }
 }
 
-// 4.43. Cleanup on Page Unload
+// 4.36. Update Abstract Shapes
+function updateAbstractShapes() {
+    const pixelSize = 2; // Smallest pixel size
+    const glitchIntensity = glitchIntensitySlider.value; // 0 to 1
+
+    // For each shape, create pixelations
+    abstractShapes.forEach((shape, index) => {
+        // Draw pixelated shape
+        ctx.fillStyle = shape.color;
+        ctx.fillRect(shape.x, shape.y, pixelSize, pixelSize);
+
+        // Update position
+        shape.x += shape.dx;
+        shape.y += shape.dy;
+
+        // Bounce off edges
+        if (shape.x + pixelSize > canvas.width || shape.x < 0) {
+            shape.dx *= -1;
+        }
+        if (shape.y + pixelSize > canvas.height || shape.y < 0) {
+            shape.dy *= -1;
+        }
+    });
+}
+
+// 4.37. Apply Abstract Effect
+function applyAbstractEffect() {
+    if (!isAbstractActive) return;
+
+    // No specific code here as abstract shapes are handled in the abstract loop
+}
+
+// ------------------------------
+// 5. Live Visualization via BroadcastChannel
+// ------------------------------
+
+// Broadcast messages to visualization window
+function sendEffectToVisualization(effect) {
+    if (broadcastChannel) {
+        broadcastChannel.postMessage({ type: 'effect', effect: effect });
+    }
+}
+
+function sendStrobeToVisualization(show, color) {
+    if (broadcastChannel) {
+        broadcastChannel.postMessage({ type: 'strobe', show: show, color: color });
+    }
+}
+
+// ------------------------------
+// 6. Performance Optimizations
+// ------------------------------
+
+// Limit canvas resolution if needed
+function setCanvasSize(width, height) {
+    canvas.width = width;
+    canvas.height = height;
+}
+
+// ------------------------------
+// 7. Cleanup on Page Unload
+// ------------------------------
+
 window.addEventListener('beforeunload', () => {
     // Close visualization window if open
     if (visualizationWindow && !visualizationWindow.closed) {
