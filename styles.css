@@ -1,5 +1,3 @@
-/* styles.css */
-
 /* General Styles */
 body {
     font-family: Arial, sans-serif;
@@ -23,25 +21,8 @@ h1 {
     gap: 20px;
 }
 
-/* Effect Control Sections */
-.effect-control, #strobeControls, #audioControls, #recordingControls, #liveVisualizationControls, #abstractControls {
-    background-color: #222;
-    padding: 15px;
-    border-radius: 10px;
-    width: 300px;
-}
-
-.effect-control h3,
-#strobeControls h3,
-#audioControls h3,
-#recordingControls h3,
-#liveVisualizationControls h3,
-#abstractControls h3 {
-    margin-bottom: 10px;
-}
-
-/* Buttons */
-button {
+/* Effect Buttons */
+#controls button {
     padding: 10px 20px;
     margin: 10px 0;
     border: none;
@@ -52,21 +33,53 @@ button {
     transition: background-color 0.3s;
 }
 
-button:hover {
+#controls button:hover {
     background-color: #666;
 }
 
-button:disabled {
+#controls button:disabled {
     background-color: #333;
     cursor: not-allowed;
 }
 
-/* Sliders */
-input[type="range"] {
+/* Slider Containers */
+.slider-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.slider-container label {
+    margin-bottom: 5px;
+}
+
+.slider-container input[type="range"] {
+    width: 200px;
+}
+
+/* Strobe Controls Styling */
+#strobeControls {
+    background-color: #222;
+    padding: 15px;
+    border-radius: 10px;
+    width: 300px;
+}
+
+#strobeControls h3 {
+    margin-bottom: 10px;
+}
+
+#strobeControls label {
+    display: block;
+    margin: 10px 0 5px;
+}
+
+#strobeControls input[type="range"],
+#strobeControls input[type="color"] {
     width: 100%;
 }
 
-input[type="color"] {
+#strobeControls input[type="color"] {
     width: 50px;
     height: 30px;
     padding: 0;
@@ -74,16 +87,59 @@ input[type="color"] {
     cursor: pointer;
 }
 
-label {
-    display: block;
-    margin: 10px 0 5px;
-}
-
-span {
+#speedValue {
     display: inline-block;
     width: 30px;
     text-align: center;
     margin-left: 10px;
+}
+
+/* Audio Controls Styling */
+#audioControls {
+    background-color: #222;
+    padding: 15px;
+    border-radius: 10px;
+    width: 300px;
+}
+
+#audioControls h3 {
+    margin-bottom: 10px;
+}
+
+/* Recording Controls Styling */
+#recordingControls {
+    background-color: #222;
+    padding: 15px;
+    border-radius: 10px;
+    width: 300px;
+}
+
+#recordingControls h3 {
+    margin-bottom: 10px;
+}
+
+/* Live Visualization Controls Styling */
+#liveVisualizationControls {
+    background-color: #222;
+    padding: 15px;
+    border-radius: 10px;
+    width: 300px;
+}
+
+#liveVisualizationControls h3 {
+    margin-bottom: 10px;
+}
+
+/* Abstract Mode Controls Styling */
+#abstractControls {
+    background-color: #222;
+    padding: 15px;
+    border-radius: 10px;
+    width: 300px;
+}
+
+#abstractControls h3 {
+    margin-bottom: 10px;
 }
 
 /* Media Canvas Styling */

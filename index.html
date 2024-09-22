@@ -1,64 +1,50 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Trippy Effects App</title>
+    <link href="https://unpkg.com/filepond/dist/filepond.css" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <!-- Include PDF.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.min.js"></script>
 </head>
 <body>
     <h1>Trippy Effects App</h1>
     
     <!-- File Upload -->
-    <input type="file" id="fileInput" accept="image/gif,video/*,audio/*">
+    <input type="file" id="fileInput" accept="image/gif,video/*,audio/*,image/jpeg,image/jpg,application/pdf">
     
-    <!-- Control Buttons and Sliders -->
+    <!-- Control Buttons -->
     <div id="controls">
         <!-- Effect Toggle Buttons -->
-        <div class="effect-control">
-            <button id="glitchBtn">Glitch</button>
-            <label for="glitchSpeed">Glitch Speed:</label>
-            <input type="range" id="glitchSpeed" min="1" max="20" value="5">
-            <span id="glitchSpeedValue">5</span>
-            
+        <button id="glitchBtn">Glitch</button>
+        <div class="slider-container">
             <label for="glitchIntensity">Glitch Intensity:</label>
-            <input type="range" id="glitchIntensity" min="1" max="100" value="50">
-            <span id="glitchIntensityValue">50</span>
+            <input type="range" id="glitchIntensity" min="1" max="10" value="5">
         </div>
         
-        <div class="effect-control">
-            <button id="analogBtn">Analog</button>
-            <label for="analogSpeed">Analog Speed:</label>
-            <input type="range" id="analogSpeed" min="1" max="20" value="5">
-            <span id="analogSpeedValue">5</span>
-            
+        <button id="analogBtn">Analog</button>
+        <div class="slider-container">
             <label for="analogIntensity">Analog Intensity:</label>
-            <input type="range" id="analogIntensity" min="1" max="100" value="50">
-            <span id="analogIntensityValue">50</span>
+            <input type="range" id="analogIntensity" min="1" max="10" value="5">
         </div>
         
-        <div class="effect-control">
-            <button id="trailsBtn">Trails</button>
-            <label for="trailsSpeed">Trails Speed:</label>
-            <input type="range" id="trailsSpeed" min="1" max="20" value="5">
-            <span id="trailsSpeedValue">5</span>
-            
+        <button id="trailsBtn">Trails</button>
+        <div class="slider-container">
             <label for="trailsIntensity">Trails Intensity:</label>
-            <input type="range" id="trailsIntensity" min="1" max="100" value="50">
-            <span id="trailsIntensityValue">50</span>
+            <input type="range" id="trailsIntensity" min="1" max="10" value="5">
         </div>
         
         <!-- Strobe Controls -->
         <div id="strobeControls">
             <h3>Strobe Effect</h3>
-            <button id="strobeBtn">Strobe</button>
-            
             <label for="strobeSpeed">Speed (flashes per second):</label>
             <input type="range" id="strobeSpeed" min="1" max="20" value="5">
-            <span id="strobeSpeedValue">5</span>
+            <span id="speedValue">5</span>
             
             <label for="strobeColor">Color:</label>
             <input type="color" id="strobeColor" value="#FFFFFF">
+            <button id="strobeBtn">Toggle Strobe</button>
         </div>
         
         <!-- Audio Controls -->
@@ -92,6 +78,10 @@
     
     <!-- Media Display -->
     <canvas id="mediaCanvas"></canvas>
+    
+    <!-- Optional Libraries -->
+    <!-- FilePond Library (Optional for Enhanced File Upload) -->
+    <!-- <script src="https://unpkg.com/filepond/dist/filepond.js"></script> -->
     
     <!-- App Script -->
     <script src="app.js"></script>
