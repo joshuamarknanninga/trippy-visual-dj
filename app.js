@@ -477,7 +477,7 @@ function applyTrailsEffect() {
     }
 
     ctx.putImageData(trailsData, 0, 0);
-    ctx.drawImage(video || (audio && audio.paused ? null : audio), 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(video || (audio && !audio.paused ? audio : null), 0, 0, canvas.width, canvas.height);
 }
 
 // 4.23. Toggle Strobe Effect
@@ -583,7 +583,7 @@ function launchVisualization() {
                 canvas.width = window.innerWidth;
                 canvas.height = window.innerHeight;
 
-                // Receive messages from the main window
+                // BroadcastChannel for communication
                 const bc = new BroadcastChannel('visualization_channel');
                 bc.onmessage = function(event) {
                     const data = event.data;
@@ -596,6 +596,7 @@ function launchVisualization() {
                     }
                 };
 
+                // Handle Effects
                 function triggerEffect(effect) {
                     switch(effect) {
                         case 'glitch':
@@ -626,7 +627,7 @@ function launchVisualization() {
                         const offset = Math.floor(Math.random() * 20) * 4;
 
                         if (index + offset < data.length) {
-                            data[index] = data[index + offset];       // Red
+                            data[index] = data[index + offset];         // Red
                             data[index + 1] = data[index + offset + 1]; // Green
                             data[index + 2] = data[index + offset + 2]; // Blue
                         }
@@ -659,6 +660,7 @@ function launchVisualization() {
                     ctx.putImageData(trailsData, 0, 0);
                 }
 
+                // Handle Strobe Effect
                 function handleStrobe(show, color) {
                     if (show) {
                         ctx.fillStyle = color;
@@ -668,29 +670,35 @@ function launchVisualization() {
                     }
                 }
 
-                // Abstract Effect in Visualization Window
+                // Abstract Effect
+                const abstractShapes = [];
+                const maxShapes = 100;
+
                 function applyAbstractEffect() {
-                    // Implement a simple abstract effect
                     const size = Math.random() * 50 + 10;
                     const x = Math.random() * canvas.width;
                     const y = Math.random() * canvas.height;
                     const dx = (Math.random() - 0.5) * 5;
                     const dy = (Math.random() - 0.5) * 5;
-                    const color = `hsl(${Math.random() * 360}, 100%, 50%)`;
+                    const color = \`hsl(\${Math.random() * 360}, 100%, 50%)\`;
 
                     const shape = { x, y, dx, dy, size, color };
-
                     abstractShapes.push(shape);
+
+                    // Limit number of shapes
+                    if (abstractShapes.length > maxShapes) {
+                        abstractShapes.shift();
+                    }
+
+                    animateAbstractShapes();
                 }
 
-                const abstractShapes = [];
-                const maxShapes = 100;
-
-                function applyAbstractEffectVisualization() {
+                function animateAbstractShapes() {
                     ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
                     abstractShapes.forEach((shape, index) => {
+                        // Draw shape
                         ctx.beginPath();
                         ctx.arc(shape.x, shape.y, shape.size, 0, Math.PI * 2);
                         ctx.fillStyle = shape.color;
@@ -707,22 +715,10 @@ function launchVisualization() {
                         if (shape.y + shape.size > canvas.height || shape.y - shape.size < 0) {
                             shape.dy *= -1;
                         }
-
-                        // Remove shapes that are too small
-                        if (shape.size < 1) {
-                            abstractShapes.splice(index, 1);
-                        }
                     });
 
-                    // Limit number of shapes
-                    while (abstractShapes.length > maxShapes) {
-                        abstractShapes.shift();
-                    }
-
-                    requestAnimationFrame(applyAbstractEffectVisualization);
+                    requestAnimationFrame(animateAbstractShapes);
                 }
-
-                applyAbstractEffectVisualization(); // Start abstract visualization
             </script>
         </body>
         </html>
@@ -772,7 +768,7 @@ function abstractLoop() {
     // Update and draw shapes
     updateAbstractShapes();
 
-    mainAnimationFrameId = requestAnimationFrame(abstractLoop);
+    abstractAnimationFrameId = requestAnimationFrame(abstractLoop);
 }
 
 // 4.31. Add Random Shape
@@ -820,12 +816,6 @@ function updateAbstractShapes() {
         // Optionally, reduce size over time
         // shape.size *= 0.99;
     });
-}
-
-// 4.33. Apply Abstract Effect (for visualization window)
-function applyAbstractEffect() {
-    // This function can be used to send abstract effect data to visualization window if needed
-    // Currently, abstract visuals are handled within the main window and visualization window independently
 }
 
 // ------------------------------
@@ -881,4 +871,3 @@ window.addEventListener('beforeunload', () => {
         cancelAnimationFrame(abstractAnimationFrameId);
     }
 });
-
