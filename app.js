@@ -194,15 +194,14 @@ function clearEffects() {
     analogBtn.style.backgroundColor = '#555';
     trailsBtn.style.backgroundColor = '#555';
     strobeBtn.style.backgroundColor = '#555';
-    abstractBtn.style.backgroundColor = '#555';
 
     // Reset Calibration Sliders
     glitchIntensitySlider.value = 0.5;
-    glitchIntensityValue.textContent = '0.50';
+    glitchIntensityValue.textContent = '0.5';
     analogIntensitySlider.value = 0.5;
-    analogIntensityValue.textContent = '0.50';
+    analogIntensityValue.textContent = '0.5';
     trailsIntensitySlider.value = 0.5;
-    trailsIntensityValue.textContent = '0.50';
+    trailsIntensityValue.textContent = '0.5';
     strobeSpeedSlider.value = 5;
     speedValueDisplay.textContent = '5';
     strobeColorPicker.value = '#FFFFFF';
@@ -347,7 +346,20 @@ function toggleStrobe() {
         strobeInterval = null;
         showStrobe = false;
         // Redraw the current frame without strobe
-        redrawCanvas();
+        redrawMedia();
+    }
+}
+
+// Helper Function to Redraw Media Without Strobe
+function redrawMedia() {
+    if (videoElement && !videoElement.paused) {
+        ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+    } else if (audioElement && !audioElement.paused) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    } else if (imgElement) {
+        ctx.drawImage(imgElement, 0, 0, canvas.width, canvas.height);
+    } else {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
 }
 
@@ -542,7 +554,7 @@ function applyVisualEffects() {
 
     // Apply Abstract Effect
     if (isAbstractActive) {
-        // Abstract effects are handled in their own loop
+        applyAbstractEffect();
     }
 }
 
@@ -591,6 +603,7 @@ function applyTrailsEffect() {
 // ------------------------------
 // 4.32. Start Abstract Mode
 // ------------------------------
+
 function startAbstractMode() {
     if (isAbstractActive) return;
 
@@ -618,7 +631,7 @@ function stopAbstractMode() {
     abstractShapes.length = 0;
 
     // Redraw the current frame to remove abstract elements
-    redrawCanvas();
+    redrawMedia();
 
     // Notify visualization window to clear
     if (broadcastChannel) {
@@ -748,6 +761,8 @@ function drawBlob(x, y, size, color) {
         const py = r * Math.sin(angle);
         ctx.lineTo(px, py);
     }
+    ctx.close
+
     ctx.closePath();
     ctx.fillStyle = color;
     ctx.fill();
@@ -768,53 +783,103 @@ function setShapeType(shape) {
     currentShapeType = shape;
 }
 
-// 4.43. Draw Smiley Shape
-// (Already implemented in drawSmiley function above)
+// 4.43. Abstract Loop
+function abstractLoop() {
+    if (!isAbstractActive) return;
+
+    // Add new shape randomly
+    addRandomShape();
+
+    // Draw and manage abstract shapes
+    drawAbstractShapes();
+
+    abstractAnimationFrameId = requestAnimationFrame(abstractLoop);
+}
+
+// 4.44. Add Random Shape
+function addRandomShape() {
+    const x = Math.floor(Math.random() * canvas.width);
+    const y = Math.floor(Math.random() * canvas.height);
+    const size = Math.random() * 20 + 5; // Size between 5 and 25
+    const color = `hsl(${Math.random() * 360}, 100%, 50%)`;
+
+    abstractShapes.push({ x, y, size, color, type: currentShapeType });
+
+    if (abstractShapes.length > maxShapes) {
+        abstractShapes.shift();
+    }
+}
+
+// 4.45. Draw Abstract Shapes
+function drawAbstractShapes() {
+    abstractShapes.forEach(shape => {
+        switch(shape.type) {
+            case 'pixel':
+                drawPixel(shape.x, shape.y, shape.size, shape.color);
+                break;
+            case 'blob':
+                drawBlob(shape.x, shape.y, shape.size, shape.color);
+                break;
+            case 'heart':
+                drawHeart(shape.x, shape.y, shape.size, shape.color);
+                break;
+            case 'smiley':
+                drawSmiley(shape.x, shape.y, shape.size, shape.color);
+                break;
+            default:
+                drawPixel(shape.x, shape.y, shape.size, shape.color);
+        }
+    });
+}
+
+// 4.46. Apply Abstract Effect
+function applyAbstractEffect() {
+    // This function can be used to add shapes continuously
+    // Currently handled in abstractLoop
+}
 
 // ------------------------------
-    // 5. Strobe Effect Implementation
-    // ------------------------------
-    
-    // 5.1. Toggle Strobe Effect
-    function toggleStrobe() {
-        isStrobeActive = !isStrobeActive;
-        strobeBtn.style.backgroundColor = isStrobeActive ? '#777' : '#555';
-        strobeBtn.textContent = isStrobeActive ? 'Stop Strobe' : 'Start Strobe';
-    
-        if (isStrobeActive) {
-            strobeInterval = setInterval(toggleStrobeVisibility, 1000 / strobeSpeed);
+// 5. Strobe Effect Implementation
+// ------------------------------
+
+// 5.1. Toggle Strobe Effect
+function toggleStrobe() {
+    isStrobeActive = !isStrobeActive;
+    strobeBtn.style.backgroundColor = isStrobeActive ? '#777' : '#555';
+    strobeBtn.textContent = isStrobeActive ? 'Stop Strobe' : 'Start Strobe';
+
+    if (isStrobeActive) {
+        strobeInterval = setInterval(toggleStrobeVisibility, 1000 / strobeSpeed);
+    } else {
+        clearInterval(strobeInterval);
+        strobeInterval = null;
+        showStrobe = false;
+        // Redraw the current frame without strobe
+        if (videoElement && !videoElement.paused) {
+            ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+        } else if (audioElement && !audioElement.paused) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        } else if (imgElement) {
+            ctx.drawImage(imgElement, 0, 0, canvas.width, canvas.height);
         } else {
-            clearInterval(strobeInterval);
-            strobeInterval = null;
-            showStrobe = false;
-            // Redraw the current frame without strobe
-            redrawCurrentFrame();
-    
-            // Notify visualization window
-            if (broadcastChannel) {
-                broadcastChannel.postMessage({ type: 'strobe', show: showStrobe, color: strobeColor });
-            }
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
-    }
-    
-    // 5.2. Toggle Strobe Visibility
-    function toggleStrobeVisibility() {
-        showStrobe = !showStrobe;
-        if (showStrobe) {
-            ctx.fillStyle = strobeColor;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-        } else {
-            redrawCurrentFrame();
-        }
-    
-        // Send strobe state to visualization window if open
+
+        // Notify visualization window
         if (broadcastChannel) {
             broadcastChannel.postMessage({ type: 'strobe', show: showStrobe, color: strobeColor });
         }
     }
-    
-    // 5.3. Redraw Current Frame
-    function redrawCurrentFrame() {
+}
+
+// 5.2. Toggle Strobe Visibility
+function toggleStrobeVisibility() {
+    showStrobe = !showStrobe;
+    if (showStrobe) {
+        ctx.fillStyle = strobeColor;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    } else {
+        // Redraw the current frame without strobe
         if (videoElement && !videoElement.paused) {
             ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
         } else if (audioElement && !audioElement.paused) {
@@ -825,662 +890,440 @@ function setShapeType(shape) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
     }
-    
-    // 6. Abstract Mode Implementation
-    // ------------------------------
-    
-    // 6.1. Toggle Abstract Mode
-    function toggleAbstractMode() {
-        if (isAbstractActive) {
-            stopAbstractMode();
-        } else {
-            startAbstractMode();
+
+    // Send strobe state to visualization window if open
+    if (broadcastChannel) {
+        broadcastChannel.postMessage({ type: 'strobe', show: showStrobe, color: strobeColor });
+    }
+}
+
+// ------------------------------
+// 6. Recording Functionality
+// ------------------------------
+
+// 6.1. Start Recording
+function startRecording() {
+    if (!canvas.captureStream) {
+        alert('Your browser does not support MediaRecorder API.');
+        return;
+    }
+
+    const stream = canvas.captureStream(30); // 30 FPS
+    mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm; codecs=vp9' });
+
+    mediaRecorder.ondataavailable = function(event) {
+        if (event.data.size > 0) {
+            recordedChunks.push(event.data);
         }
+    };
+
+    mediaRecorder.onstop = function() {
+        const blob = new Blob(recordedChunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        downloadVideoLink.href = url;
+        downloadVideoLink.style.display = 'inline';
+        recordedChunks = [];
+    };
+
+    mediaRecorder.start();
+    startRecordingBtn.disabled = true;
+    stopRecordingBtn.disabled = false;
+    downloadVideoLink.style.display = 'none';
+}
+
+// 6.2. Stop Recording
+function stopRecording() {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
     }
-    
-    // 6.2. Start Abstract Mode
-    function startAbstractMode() {
-        if (isAbstractActive) return;
-    
-        isAbstractActive = true;
-        abstractBtn.style.backgroundColor = '#666';
-        abstractBtn.textContent = 'Stop Abstract';
-    
-        abstractAnimationFrameId = requestAnimationFrame(abstractLoop);
+    startRecordingBtn.disabled = false;
+    stopRecordingBtn.disabled = true;
+}
+
+// ------------------------------
+// 7. Live Visualization via BroadcastChannel
+// ------------------------------
+
+// 7.1. Launch Visualization on Second Screen
+function launchVisualization() {
+    if (visualizationWindow && !visualizationWindow.closed) {
+        visualizationWindow.focus();
+        return;
     }
-    
-    // 6.3. Stop Abstract Mode
-    function stopAbstractMode() {
-        if (!isAbstractActive) return;
-    
-        isAbstractActive = false;
-        abstractBtn.style.backgroundColor = '#444';
-        abstractBtn.textContent = 'Start Abstract';
-    
-        if (abstractAnimationFrameId) {
-            cancelAnimationFrame(abstractAnimationFrameId);
-            abstractAnimationFrameId = null;
-        }
-    
-        // Clear abstract shapes
-        abstractShapes.length = 0;
-    
-        // Redraw the current frame to remove abstract elements
-        redrawCurrentFrame();
-    
-        // Notify visualization window to clear
-        if (broadcastChannel) {
-            broadcastChannel.postMessage({ type: 'clear' });
-        }
-    }
-    
-    // 6.4. Abstract Loop
-    function abstractLoop() {
-        if (!isAbstractActive) return;
-    
-        // Add new shape randomly
-        addRandomShape();
-    
-        // Draw and manage abstract shapes
-        drawAbstractShapes();
-    
-        abstractAnimationFrameId = requestAnimationFrame(abstractLoop);
-    }
-    
-    // 6.5. Add Random Shape
-    function addRandomShape() {
-        const x = Math.floor(Math.random() * canvas.width);
-        const y = Math.floor(Math.random() * canvas.height);
-        const size = Math.random() * 20 + 5; // Size between 5 and 25
-        const color = `hsl(${Math.random() * 360}, 100%, 50%)`;
-    
-        abstractShapes.push({ x, y, size, color, type: currentShapeType });
-    
-        if (abstractShapes.length > maxShapes) {
-            abstractShapes.shift();
-        }
-    }
-    
-    // 6.6. Draw Abstract Shapes
-    function drawAbstractShapes() {
-        abstractShapes.forEach(shape => {
-            switch(shape.type) {
-                case 'pixel':
-                    drawPixel(shape.x, shape.y, shape.size, shape.color);
-                    break;
-                case 'blob':
-                    drawBlob(shape.x, shape.y, shape.size, shape.color);
-                    break;
-                case 'heart':
-                    drawHeart(shape.x, shape.y, shape.size, shape.color);
-                    break;
-                case 'smiley':
-                    drawSmiley(shape.x, shape.y, shape.size, shape.color);
-                    break;
-                default:
-                    drawPixel(shape.x, shape.y, shape.size, shape.color);
-            }
-        });
-    }
-    
-    // ------------------------------
-    // 7. Shape Drawing Functions
-    // ------------------------------
-    
-    // 7.1. Draw Pixel
-    function drawPixel(x, y, size, color) {
-        ctx.fillStyle = color;
-        ctx.fillRect(x, y, size, size);
-    }
-    
-    // 7.2. Draw Blob
-    function drawBlob(x, y, size, color) {
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.scale(size / 100, size / 100); // Adjust scale based on size
-    
-        ctx.beginPath();
-        // Random blob shape
-        const radius = 50;
-        ctx.moveTo(0, 0);
-        for (let i = 0; i < 8; i++) {
-            const angle = (Math.PI * 2 / 8) * i;
-            const r = radius + Math.random() * 20;
-            const px = r * Math.cos(angle);
-            const py = r * Math.sin(angle);
-            ctx.lineTo(px, py);
-        }
-        ctx.closePath();
-        ctx.fillStyle = color;
-        ctx.fill();
-        ctx.strokeStyle = 'black';
-        ctx.stroke();
-    
-        ctx.restore();
-    }
-    
-    // 7.3. Draw Heart Shape
-    function drawHeart(x, y, size, color) {
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.scale(size / 100, size / 100); // Adjust scale based on size
-    
-        ctx.beginPath();
-        ctx.moveTo(0, 30);
-        ctx.bezierCurveTo(-30, 0, -30, -40, 0, -50);
-        ctx.bezierCurveTo(30, -40, 30, 0, 0, 30);
-        ctx.fillStyle = color;
-        ctx.fill();
-        ctx.strokeStyle = 'black';
-        ctx.stroke();
-    
-        ctx.restore();
-    }
-    
-    // 7.4. Draw Smiley Shape
-    function drawSmiley(x, y, size, color) {
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.scale(size / 100, size / 100); // Adjust scale based on size
-    
-        // Face
-        ctx.beginPath();
-        ctx.arc(0, 0, 50, 0, Math.PI * 2, true); // Outer circle
-        ctx.fillStyle = color;
-        ctx.fill();
-        ctx.strokeStyle = 'black';
-        ctx.stroke();
-    
-        // Eyes
-        ctx.beginPath();
-        ctx.arc(-15, -15, 5, 0, Math.PI * 2, true); // Left eye
-        ctx.arc(15, -15, 5, 0, Math.PI * 2, true); // Right eye
-        ctx.fillStyle = 'black';
-        ctx.fill();
-    
-        // Mouth
-        ctx.beginPath();
-        ctx.arc(0, 10, 20, 0, Math.PI, false);  // Mouth (clockwise)
-        ctx.stroke();
-    
-        ctx.restore();
-    }
-    
-    // ------------------------------
-    // 8. Live Visualization via BroadcastChannel
-    // ------------------------------
-    
-    // 8.1. Launch Visualization on Second Screen
-    function launchVisualization() {
-        if (visualizationWindow && !visualizationWindow.closed) {
-            visualizationWindow.focus();
-            return;
-        }
-    
-        // Open a new window for visualization
-        visualizationWindow = window.open('', 'Visualization', 'width=800,height=450');
-    
-        // Write minimal HTML to the new window
-        visualizationWindow.document.write(`
-            <!DOCTYPE html>
-            <html lang="en">
-            <head>
-                <meta charset="UTF-8">
-                <title>Live Visualization</title>
-                <style>
-                    body { margin: 0; background-color: #000; }
-                    canvas { display: block; width: 100%; height: 100%; }
-                </style>
-            </head>
-            <body>
-                <canvas id="visualCanvas"></canvas>
-                <script>
-                    const canvas = document.getElementById('visualCanvas');
-                    const ctx = canvas.getContext('2d');
-                    canvas.width = window.innerWidth;
-                    canvas.height = window.innerHeight;
-    
-                    // BroadcastChannel for communication
-                    const bc = new BroadcastChannel('visualization_channel');
-                    bc.onmessage = function(event) {
-                        const data = event.data;
-                        if (data.type === 'effect') {
-                            triggerEffect(data.effect);
-                        } else if (data.type === 'strobe') {
-                            handleStrobe(data.show, data.color);
-                        } else if (data.type === 'clear') {
-                            ctx.clearRect(0, 0, canvas.width, canvas.height);
-                        }
-                    };
-    
-                    // Handle Effects
-                    function triggerEffect(effect) {
-                        switch(effect) {
-                            case 'glitch':
-                                applyGlitchEffect();
-                                break;
-                            case 'analog':
-                                applyAnalogEffect();
-                                break;
-                            case 'trails':
-                                applyTrailsEffect();
-                                break;
-                            case 'abstract':
-                                applyAbstractEffect();
-                                break;
-                            default:
-                                break;
-                        }
+
+    // Open a new window for visualization
+    visualizationWindow = window.open('', 'Visualization', 'width=800,height=450');
+
+    // Write minimal HTML to the new window
+    visualizationWindow.document.write(`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <title>Live Visualization</title>
+            <style>
+                body { margin: 0; background-color: #000; }
+                canvas { display: block; width: 100%; height: 100%; }
+            </style>
+        </head>
+        <body>
+            <canvas id="visualCanvas"></canvas>
+            <script>
+                const canvas = document.getElementById('visualCanvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+
+                // BroadcastChannel for communication
+                const bc = new BroadcastChannel('visualization_channel');
+                bc.onmessage = function(event) {
+                    const data = event.data;
+                    if (data.type === 'effect') {
+                        triggerEffect(data.effect);
+                    } else if (data.type === 'strobe') {
+                        handleStrobe(data.show, data.color);
+                    } else if (data.type === 'clear') {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
                     }
-    
-                    function applyGlitchEffect() {
-                        // Implement a simple glitch effect
-                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                        const data = imageData.data;
-    
-                        const numberOfPixels = Math.floor(canvas.width * canvas.height * 0.005); // 0.5% of pixels
-    
-                        for (let i = 0; i < numberOfPixels; i++) {
-                            const x = Math.floor(Math.random() * canvas.width);
-                            const y = Math.floor(Math.random() * canvas.height);
-                            const index = (y * canvas.width + x) * 4;
-    
-                            // Randomly alter the pixel's color
-                            data[index] = Math.floor(Math.random() * 256);     // Red
-                            data[index + 1] = Math.floor(Math.random() * 256); // Green
-                            data[index + 2] = Math.floor(Math.random() * 256); // Blue
-                            // Alpha remains unchanged
-                        }
-    
-                        ctx.putImageData(imageData, 0, 0);
+                };
+
+                // Handle Effects
+                function triggerEffect(effect) {
+                    switch(effect) {
+                        case 'glitch':
+                            applyGlitchEffect();
+                            break;
+                        case 'analog':
+                            applyAnalogEffect();
+                            break;
+                        case 'trails':
+                            applyTrailsEffect();
+                            break;
+                        case 'abstract':
+                            applyAbstractEffect();
+                            break;
+                        default:
+                            break;
                     }
-    
-                    function applyAnalogEffect() {
-                        // Apply a color overlay
-                        ctx.globalAlpha = 0.1;
-                        ctx.fillStyle = 'rgba(0, 255, 255, 1)'; // Cyan tint
-                        ctx.fillRect(0, 0, canvas.width, canvas.height);
-                        ctx.globalAlpha = 1.0;
-                    }
-    
-                    function applyTrailsEffect() {
-                        // Apply trails by fading the canvas
-                        ctx.fillStyle = 'rgba(0, 0, 0, 0.05)'; // Adjust opacity for trails intensity
-                        ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    }
-    
-                    // Handle Strobe Effect
-                    function handleStrobe(show, color) {
-                        if (show) {
-                            ctx.fillStyle = color;
-                            ctx.fillRect(0, 0, canvas.width, canvas.height);
-                        } else {
-                            ctx.clearRect(0, 0, canvas.width, canvas.height);
-                        }
-                    }
-    
-                    // Abstract Mode
-                    const abstractShapes = [];
-                    const maxShapes = 1000;
-                    let currentShapeType = 'pixel'; // Default shape
-    
-                    function applyAbstractEffect() {
+                }
+
+                function applyGlitchEffect() {
+                    // Implement a simple glitch effect
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const data = imageData.data;
+
+                    const numberOfPixels = Math.floor(canvas.width * canvas.height * 0.005); // 0.5% of pixels
+
+                    for (let i = 0; i < numberOfPixels; i++) {
                         const x = Math.floor(Math.random() * canvas.width);
                         const y = Math.floor(Math.random() * canvas.height);
-                        const size = Math.random() * 20 + 5; // Size between 5 and 25
-                        const color = \`hsl(\${Math.random() * 360}, 100%, 50%)\`;
-    
-                        abstractShapes.push({ x, y, size, color, type: currentShapeType });
-    
-                        if (abstractShapes.length > maxShapes) {
-                            abstractShapes.shift();
-                        }
-    
-                        drawAbstractShapes();
+                        const index = (y * canvas.width + x) * 4;
+
+                        // Randomly alter the pixel's color
+                        data[index] = Math.floor(Math.random() * 256);     // Red
+                        data[index + 1] = Math.floor(Math.random() * 256); // Green
+                        data[index + 2] = Math.floor(Math.random() * 256); // Blue
+                        // Alpha remains unchanged
                     }
-    
-                    function drawAbstractShapes() {
-                        abstractShapes.forEach(shape => {
-                            switch(shape.type) {
-                                case 'pixel':
-                                    drawPixel(shape.x, shape.y, shape.size, shape.color);
-                                    break;
-                                case 'blob':
-                                    drawBlob(shape.x, shape.y, shape.size, shape.color);
-                                    break;
-                                case 'heart':
-                                    drawHeart(shape.x, shape.y, shape.size, shape.color);
-                                    break;
-                                case 'smiley':
-                                    drawSmiley(shape.x, shape.y, shape.size, shape.color);
-                                    break;
-                                default:
-                                    drawPixel(shape.x, shape.y, shape.size, shape.color);
-                            }
-                        });
-                    }
-    
-                    function drawPixel(x, y, size, color) {
+
+                    ctx.putImageData(imageData, 0, 0);
+                }
+
+                function applyAnalogEffect() {
+                    // Apply a color overlay
+                    ctx.globalAlpha = 0.1;
+                    ctx.fillStyle = 'rgba(0, 255, 255, 1)'; // Cyan tint
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.globalAlpha = 1.0;
+                }
+
+                function applyTrailsEffect() {
+                    // Apply trails by fading the canvas
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.05)'; // Adjust opacity for trails intensity
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                }
+
+                // Handle Strobe Effect
+                function handleStrobe(show, color) {
+                    if (show) {
                         ctx.fillStyle = color;
-                        ctx.fillRect(x, y, size, size);
-                    }
-    
-                    function drawBlob(x, y, size, color) {
-                        ctx.save();
-                        ctx.translate(x, y);
-                        ctx.scale(size / 100, size / 100);
-    
-                        ctx.beginPath();
-                        const radius = 50;
-                        ctx.moveTo(0, 0);
-                        for (let i = 0; i < 8; i++) {
-                            const angle = (Math.PI * 2 / 8) * i;
-                            const r = radius + Math.random() * 20;
-                            const px = r * Math.cos(angle);
-                            const py = r * Math.sin(angle);
-                            ctx.lineTo(px, py);
-                        }
-                        ctx.closePath();
-                        ctx.fillStyle = color;
-                        ctx.fill();
-                        ctx.strokeStyle = 'black';
-                        ctx.stroke();
-    
-                        ctx.restore();
-                    }
-    
-                    function drawHeart(x, y, size, color) {
-                        ctx.save();
-                        ctx.translate(x, y);
-                        ctx.scale(size / 100, size / 100);
-    
-                        ctx.beginPath();
-                        ctx.moveTo(0, 30);
-                        ctx.bezierCurveTo(-30, 0, -30, -40, 0, -50);
-                        ctx.bezierCurveTo(30, -40, 30, 0, 0, 30);
-                        ctx.fillStyle = color;
-                        ctx.fill();
-                        ctx.strokeStyle = 'black';
-                        ctx.stroke();
-    
-                        ctx.restore();
-                    }
-    
-                    function drawSmiley(x, y, size, color) {
-                        ctx.save();
-                        ctx.translate(x, y);
-                        ctx.scale(size / 100, size / 100);
-    
-                        // Face
-                        ctx.beginPath();
-                        ctx.arc(0, 0, 50, 0, Math.PI * 2, true); // Outer circle
-                        ctx.fillStyle = color;
-                        ctx.fill();
-                        ctx.strokeStyle = 'black';
-                        ctx.stroke();
-    
-                        // Eyes
-                        ctx.beginPath();
-                        ctx.arc(-15, -15, 5, 0, Math.PI * 2, true); // Left eye
-                        ctx.arc(15, -15, 5, 0, Math.PI * 2, true); // Right eye
-                        ctx.fillStyle = 'black';
-                        ctx.fill();
-    
-                        // Mouth
-                        ctx.beginPath();
-                        ctx.arc(0, 10, 20, 0, Math.PI, false);  // Mouth (clockwise)
-                        ctx.stroke();
-    
-                        ctx.restore();
-                    }
-                </script>
-            </body>
-            </html>
-        `);
-    
-        // Initialize BroadcastChannel for communication
-        broadcastChannel = new BroadcastChannel('visualization_channel');
-    }
-    
-    // ------------------------------
-    // 7. Shape Drawing Functions (Reiterated for Completeness)
-    // ------------------------------
-    
-    // 7.1. Draw Pixel
-    function drawPixel(x, y, size, color) {
-        ctx.fillStyle = color;
-        ctx.fillRect(x, y, size, size);
-    }
-    
-    // 7.2. Draw Blob
-    function drawBlob(x, y, size, color) {
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.scale(size / 100, size / 100); // Adjust scale based on size
-    
-        ctx.beginPath();
-        // Random blob shape
-        const radius = 50;
-        ctx.moveTo(0, 0);
-        for (let i = 0; i < 8; i++) {
-            const angle = (Math.PI * 2 / 8) * i;
-            const r = radius + Math.random() * 20;
-            const px = r * Math.cos(angle);
-            const py = r * Math.sin(angle);
-            ctx.lineTo(px, py);
-        }
-        ctx.closePath();
-        ctx.fillStyle = color;
-        ctx.fill();
-        ctx.strokeStyle = 'black';
-        ctx.stroke();
-    
-        ctx.restore();
-    }
-    
-    // 7.3. Draw Heart Shape
-    function drawHeart(x, y, size, color) {
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.scale(size / 100, size / 100); // Adjust scale based on size
-    
-        ctx.beginPath();
-        ctx.moveTo(0, 30);
-        ctx.bezierCurveTo(-30, 0, -30, -40, 0, -50);
-        ctx.bezierCurveTo(30, -40, 30, 0, 0, 30);
-        ctx.fillStyle = color;
-        ctx.fill();
-        ctx.strokeStyle = 'black';
-        ctx.stroke();
-    
-        ctx.restore();
-    }
-    
-    // 7.4. Draw Smiley Shape
-    function drawSmiley(x, y, size, color) {
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.scale(size / 100, size / 100); // Adjust scale based on size
-    
-        // Face
-        ctx.beginPath();
-        ctx.arc(0, 0, 50, 0, Math.PI * 2, true); // Outer circle
-        ctx.fillStyle = color;
-        ctx.fill();
-        ctx.strokeStyle = 'black';
-        ctx.stroke();
-    
-        // Eyes
-        ctx.beginPath();
-        ctx.arc(-15, -15, 5, 0, Math.PI * 2, true); // Left eye
-        ctx.arc(15, -15, 5, 0, Math.PI * 2, true); // Right eye
-        ctx.fillStyle = 'black';
-        ctx.fill();
-    
-        // Mouth
-        ctx.beginPath();
-        ctx.arc(0, 10, 20, 0, Math.PI, false);  // Mouth (clockwise)
-        ctx.stroke();
-    
-        ctx.restore();
-    }
-    
-    // ------------------------------
-    // 8. Live Visualization via BroadcastChannel
-    // ------------------------------
-    
-    // Broadcast messages to visualization window
-    function sendEffectToVisualization(effect) {
-        if (broadcastChannel) {
-            broadcastChannel.postMessage({ type: 'effect', effect: effect });
-        }
-    }
-    
-    function sendStrobeToVisualization(show, color) {
-        if (broadcastChannel) {
-            broadcastChannel.postMessage({ type: 'strobe', show: show, color: color });
-        }
-    }
-    
-    // ------------------------------
-    // 9. Cleanup on Page Unload
-    // ------------------------------
-    
-    window.addEventListener('beforeunload', () => {
-        // Close visualization window if open
-        if (visualizationWindow && !visualizationWindow.closed) {
-            visualizationWindow.close();
-        }
-    
-        // Close BroadcastChannel
-        if (broadcastChannel) {
-            broadcastChannel.close();
-        }
-    
-        // Stop all animation frames
-        if (mainAnimationFrameId) {
-            cancelAnimationFrame(mainAnimationFrameId);
-        }
-        if (audioAnimationFrameId) {
-            cancelAnimationFrame(audioAnimationFrameId);
-        }
-        if (abstractAnimationFrameId) {
-            cancelAnimationFrame(abstractAnimationFrameId);
-        }
-    });
-    
-    // ------------------------------
-    // 10. Additional Functionality
-    // ------------------------------
-    
-    // 10.1. Detect and Replicate Image Outline (Basic Implementation)
-    function detectImageOutline() {
-        if (!imgElement) return;
-    
-        // Create an off-screen canvas for processing
-        const offCanvas = document.createElement('canvas');
-        const offCtx = offCanvas.getContext('2d');
-        offCanvas.width = canvas.width;
-        offCanvas.height = canvas.height;
-    
-        offCtx.drawImage(imgElement, 0, 0, offCanvas.width, offCanvas.height);
-    
-        const imageData = offCtx.getImageData(0, 0, offCanvas.width, offCanvas.height);
-        const data = imageData.data;
-    
-        // Simple edge detection (Sobel Operator can be implemented for better results)
-        // For simplicity, we'll implement a basic threshold-based edge detection
-    
-        const grayscale = [];
-        for (let i = 0; i < data.length; i += 4) {
-            const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-            grayscale.push(avg);
-        }
-    
-        const edgeData = [];
-        const threshold = 20; // Adjust as needed
-    
-        for (let y = 1; y < offCanvas.height - 1; y++) {
-            for (let x = 1; x < offCanvas.width - 1; x++) {
-                const idx = y * offCanvas.width + x;
-                const pixel = grayscale[idx];
-    
-                // Simple neighbor difference
-                const neighbors = [
-                    grayscale[idx - 1],
-                    grayscale[idx + 1],
-                    grayscale[idx - offCanvas.width],
-                    grayscale[idx + offCanvas.width]
-                ];
-    
-                let edge = false;
-                for (let neighbor of neighbors) {
-                    if (Math.abs(pixel - neighbor) > threshold) {
-                        edge = true;
-                        break;
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    } else {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
                     }
                 }
-    
-                if (edge) {
-                    edgeData.push({ x, y, color: 'white' });
+
+                // Abstract Mode
+                const abstractShapes = [];
+                const maxShapes = 1000;
+                let currentShapeType = 'pixel'; // Default shape
+
+                function applyAbstractEffect() {
+                    const x = Math.floor(Math.random() * canvas.width);
+                    const y = Math.floor(Math.random() * canvas.height);
+                    const size = Math.random() * 20 + 5; // Size between 5 and 25
+                    const color = \`hsl(\${Math.random() * 360}, 100%, 50%)\`;
+
+                    abstractShapes.push({ x, y, size, color, type: currentShapeType });
+
+                    if (abstractShapes.length > maxShapes) {
+                        abstractShapes.shift();
+                    }
+
+                    drawAbstractShapes();
+                }
+
+                function drawAbstractShapes() {
+                    abstractShapes.forEach(shape => {
+                        switch(shape.type) {
+                            case 'pixel':
+                                drawPixel(shape.x, shape.y, shape.size, shape.color);
+                                break;
+                            case 'blob':
+                                drawBlob(shape.x, shape.y, shape.size, shape.color);
+                                break;
+                            case 'heart':
+                                drawHeart(shape.x, shape.y, shape.size, shape.color);
+                                break;
+                            case 'smiley':
+                                drawSmiley(shape.x, shape.y, shape.size, shape.color);
+                                break;
+                            default:
+                                drawPixel(shape.x, shape.y, shape.size, shape.color);
+                        }
+                    });
+                }
+
+                function drawPixel(x, y, size, color) {
+                    ctx.fillStyle = color;
+                    ctx.fillRect(x, y, size, size);
+                }
+
+                function drawBlob(x, y, size, color) {
+                    ctx.save();
+                    ctx.translate(x, y);
+                    ctx.scale(size / 100, size / 100);
+
+                    ctx.beginPath();
+                    const radius = 50;
+                    ctx.moveTo(0, 0);
+                    for (let i = 0; i < 8; i++) {
+                        const angle = (Math.PI * 2 / 8) * i;
+                        const r = radius + Math.random() * 20;
+                        const px = r * Math.cos(angle);
+                        const py = r * Math.sin(angle);
+                        ctx.lineTo(px, py);
+                    }
+                    ctx.closePath();
+                    ctx.fillStyle = color;
+                    ctx.fill();
+                    ctx.strokeStyle = 'black';
+                    ctx.stroke();
+
+                    ctx.restore();
+                }
+
+                function drawHeart(x, y, size, color) {
+                    ctx.save();
+                    ctx.translate(x, y);
+                    ctx.scale(size / 100, size / 100);
+
+                    ctx.beginPath();
+                    ctx.moveTo(0, 30);
+                    ctx.bezierCurveTo(-30, 0, -30, -40, 0, -50);
+                    ctx.bezierCurveTo(30, -40, 30, 0, 0, 30);
+                    ctx.fillStyle = color;
+                    ctx.fill();
+                    ctx.strokeStyle = 'black';
+                    ctx.stroke();
+
+                    ctx.restore();
+                }
+
+                function drawSmiley(x, y, size, color) {
+                    ctx.save();
+                    ctx.translate(x, y);
+                    ctx.scale(size / 100, size / 100);
+
+                    // Face
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 50, 0, Math.PI * 2, true); // Outer circle
+                    ctx.fillStyle = color;
+                    ctx.fill();
+                    ctx.strokeStyle = 'black';
+                    ctx.stroke();
+
+                    // Eyes
+                    ctx.beginPath();
+                    ctx.arc(-15, -15, 5, 0, Math.PI * 2, true); // Left eye
+                    ctx.arc(15, -15, 5, 0, Math.PI * 2, true); // Right eye
+                    ctx.fillStyle = 'black';
+                    ctx.fill();
+
+                    // Mouth
+                    ctx.beginPath();
+                    ctx.arc(0, 10, 20, 0, Math.PI, false);  // Mouth (clockwise)
+                    ctx.stroke();
+
+                    ctx.restore();
+                }
+
+                // Animation Loop for Abstract Mode
+                function abstractAnimationLoop() {
+                    applyAbstractEffect();
+                    requestAnimationFrame(abstractAnimationLoop);
+                }
+
+                abstractAnimationLoop(); // Start the abstract visualization
+            </script>
+        </body>
+        </html>
+    `);
+
+    // Initialize BroadcastChannel for communication
+    broadcastChannel = new BroadcastChannel('visualization_channel');
+}
+
+// ------------------------------
+// 8. Cleanup on Page Unload
+// ------------------------------
+
+window.addEventListener('beforeunload', () => {
+    // Close visualization window if open
+    if (visualizationWindow && !visualizationWindow.closed) {
+        visualizationWindow.close();
+    }
+
+    // Close BroadcastChannel
+    if (broadcastChannel) {
+        broadcastChannel.close();
+    }
+
+    // Stop all animation frames
+    if (mainAnimationFrameId) {
+        cancelAnimationFrame(mainAnimationFrameId);
+    }
+    if (audioAnimationFrameId) {
+        cancelAnimationFrame(audioAnimationFrameId);
+    }
+    if (abstractAnimationFrameId) {
+        cancelAnimationFrame(abstractAnimationFrameId);
+    }
+});
+
+// ------------------------------
+// 9. Additional Functionality
+// ------------------------------
+
+// 9.1. Detect and Replicate Image Outline (Basic Implementation)
+function detectImageOutline() {
+    if (!imgElement) return;
+
+    // Create an off-screen canvas for processing
+    const offCanvas = document.createElement('canvas');
+    const offCtx = offCanvas.getContext('2d');
+    offCanvas.width = canvas.width;
+    offCanvas.height = canvas.height;
+
+    offCtx.drawImage(imgElement, 0, 0, offCanvas.width, offCanvas.height);
+
+    const imageData = offCtx.getImageData(0, 0, offCanvas.width, offCanvas.height);
+    const data = imageData.data;
+
+    // Simple edge detection (Sobel Operator can be implemented for better results)
+    // For simplicity, we'll implement a basic threshold-based edge detection
+
+    const grayscale = [];
+    for (let i = 0; i < data.length; i += 4) {
+        const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+        grayscale.push(avg);
+    }
+
+    const edgeData = [];
+    const threshold = 20; // Adjust as needed
+
+    for (let y = 1; y < offCanvas.height - 1; y++) {
+        for (let x = 1; x < offCanvas.width - 1; x++) {
+            const idx = y * offCanvas.width + x;
+            const pixel = grayscale[idx];
+
+            // Simple neighbor difference
+            const neighbors = [
+                grayscale[idx - 1],
+                grayscale[idx + 1],
+                grayscale[idx - offCanvas.width],
+                grayscale[idx + offCanvas.width]
+            ];
+
+            let edge = false;
+            for (let neighbor of neighbors) {
+                if (Math.abs(pixel - neighbor) > threshold) {
+                    edge = true;
+                    break;
                 }
             }
-        }
-    
-        // Add detected edges to abstractShapes
-        edgeData.forEach(edge => {
-            abstractShapes.push({ x: edge.x, y: edge.y, size: 2, color: 'white', type: 'pixel' });
-        });
-    }
-    
-    // 10.2. Integrate Outline Detection with Upload
-    function handleImageFile(file) {
-        imgElement = new Image();
-        imgElement.src = URL.createObjectURL(file);
-        imgElement.onload = () => {
-            canvas.width = imgElement.width;
-            canvas.height = imgElement.height;
-            ctx.drawImage(imgElement, 0, 0, canvas.width, canvas.height);
-    
-            // Detect and replicate outline
-            detectImageOutline();
+
+            if (edge) {
+                edgeData.push({ x, y, color: 'white' });
+            }
         }
     }
-    
-    // ------------------------------
-    // 11. Memory Optimization
-    // ------------------------------
-    
-    // 11.1. Limit Number of Abstract Shapes
-    function limitAbstractShapes() {
-        if (abstractShapes.length > maxShapes) {
-            abstractShapes.splice(0, abstractShapes.length - maxShapes);
-        }
-    }
-    
-    // 11.2. Clear Abstract Shapes Periodically
-    setInterval(() => {
-        limitAbstractShapes();
-    }, 1000);
-    
-    // ------------------------------
-    // 12. Responsive Canvas
-    // ------------------------------
-    
-    window.addEventListener('resize', () => {
-        const prevWidth = canvas.width;
-        const prevHeight = canvas.height;
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-    
-        // Optionally, redraw the current media
-        if (videoElement && !videoElement.paused) {
-            ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-        } else if (audioElement && !audioElement.paused) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-        } else if (imgElement) {
-            ctx.drawImage(imgElement, 0, 0, canvas.width, canvas.height);
-        } else {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-        }
+
+    // Add detected edges to abstractShapes
+    edgeData.forEach(edge => {
+        abstractShapes.push({ x: edge.x, y: edge.y, size: 2, color: 'white', type: 'pixel' });
     });
+}
+
+// 9.2. Integrate Outline Detection with Upload
+function handleImageFile(file) {
+    imgElement = new Image();
+    imgElement.src = URL.createObjectURL(file);
+    imgElement.onload = () => {
+        canvas.width = imgElement.width;
+        canvas.height = imgElement.height;
+        ctx.drawImage(imgElement, 0, 0, canvas.width, canvas.height);
+
+        // Detect and replicate outline
+        detectImageOutline();
+    }
+}
+
+// ------------------------------
+// 10. Memory Optimization
+// ------------------------------
+
+// 10.1. Limit Number of Abstract Shapes
+function limitAbstractShapes() {
+    if (abstractShapes.length > maxShapes) {
+        abstractShapes.splice(0, abstractShapes.length - maxShapes);
+    }
+}
+
+// 10.2. Clear Abstract Shapes Periodically
+setInterval(() => {
+    limitAbstractShapes();
+}, 1000);
+
+// ------------------------------
+// 11. Responsive Canvas
+// ------------------------------
+
+window.addEventListener('resize', () => {
+    const prevWidth = canvas.width;
+    const prevHeight = canvas.height;
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // Optionally, redraw the current media
+    if (videoElement && !videoElement.paused) {
+        ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+    } else if (audioElement && !audioElement.paused) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    } else if (imgElement) {
+        ctx.drawImage(imgElement, 0, 0, canvas.width, canvas.height);
+    } else {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+});
+
