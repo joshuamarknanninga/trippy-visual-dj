@@ -3,90 +3,212 @@
 <head>
     <meta charset="UTF-8">
     <title>Trippy Effects App</title>
-    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #222;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        header {
+            background-color: #333;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        #controls {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 10px 20px;
+            background-color: #444;
+        }
+
+        .control-group {
+            margin: 10px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .control-group label {
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .control-group input[type="range"],
+        .control-group input[type="color"] {
+            width: 150px;
+        }
+
+        #buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        #buttons button {
+            padding: 10px 15px;
+            font-size: 14px;
+            border: none;
+            border-radius: 5px;
+            background-color: #555;
+            color: #fff;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #buttons button.active,
+        #buttons button:hover {
+            background-color: #777;
+        }
+
+        #canvasContainer {
+            flex: 1;
+            position: relative;
+        }
+
+        #mediaCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            background-color: #000;
+        }
+
+        footer {
+            background-color: #333;
+            padding: 10px 20px;
+            text-align: center;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            #controls {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .control-group {
+                width: 80%;
+                align-items: center;
+            }
+
+            .control-group input[type="range"],
+            .control-group input[type="color"] {
+                width: 100%;
+            }
+
+            #buttons {
+                justify-content: center;
+            }
+        }
+    </style>
+    <!-- PDF.js Library (Ensure you have included PDF.js in your project) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.min.js"></script>
 </head>
 <body>
-    <h1>Trippy Effects App</h1>
-    
-    <!-- File Upload -->
-    <input type="file" id="fileInput" accept="image/gif, image/jpeg, image/jpg, application/pdf, video/*, audio/*">
-    
-    <!-- Control Buttons -->
+    <header>
+        <h1>Trippy Effects App</h1>
+        <input type="file" id="fileInput" accept="image/*,video/*,audio/*,application/pdf">
+    </header>
+
     <div id="controls">
-        <!-- Glitch Effect Controls -->
-        <div class="effect-control">
-            <button id="glitchBtn">Glitch</button>
-            <label for="glitchIntensity">Glitch Intensity:</label>
+        <!-- Effect Buttons -->
+        <div class="control-group">
+            <label>Effects</label>
+            <div id="buttons">
+                <button id="glitchBtn">Toggle Glitch</button>
+                <button id="analogBtn">Toggle Analog</button>
+                <button id="trailsBtn">Toggle Trails</button>
+                <button id="strobeBtn">Start Strobe</button>
+            </div>
+        </div>
+
+        <!-- Glitch Intensity -->
+        <div class="control-group">
+            <label for="glitchIntensity">Glitch Intensity: <span id="glitchIntensityValue">0.50</span></label>
             <input type="range" id="glitchIntensity" min="0" max="1" step="0.01" value="0.5">
-            <span id="glitchIntensityValue">0.5</span>
         </div>
-        
-        <!-- Analog Effect Controls -->
-        <div class="effect-control">
-            <button id="analogBtn">Analog</button>
-            <label for="analogIntensity">Analog Intensity:</label>
+
+        <!-- Analog Intensity -->
+        <div class="control-group">
+            <label for="analogIntensity">Analog Intensity: <span id="analogIntensityValue">0.50</span></label>
             <input type="range" id="analogIntensity" min="0" max="1" step="0.01" value="0.5">
-            <span id="analogIntensityValue">0.5</span>
         </div>
-        
-        <!-- Trails Effect Controls -->
-        <div class="effect-control">
-            <button id="trailsBtn">Trails</button>
-            <label for="trailsIntensity">Trails Intensity:</label>
+
+        <!-- Trails Intensity -->
+        <div class="control-group">
+            <label for="trailsIntensity">Trails Intensity: <span id="trailsIntensityValue">0.50</span></label>
             <input type="range" id="trailsIntensity" min="0" max="1" step="0.01" value="0.5">
-            <span id="trailsIntensityValue">0.5</span>
         </div>
-        
-        <!-- Strobe Effect Controls -->
-        <div class="effect-control">
-            <button id="strobeBtn">Strobe</button>
-            <label for="strobeSpeed">Strobe Speed (flashes/sec):</label>
+
+        <!-- Strobe Controls -->
+        <div class="control-group">
+            <label for="strobeSpeed">Strobe Speed: <span id="speedValue">5</span> FPS</label>
             <input type="range" id="strobeSpeed" min="1" max="20" step="1" value="5">
-            <span id="speedValue">5</span>
+        </div>
+        <div class="control-group">
             <label for="strobeColor">Strobe Color:</label>
             <input type="color" id="strobeColor" value="#FFFFFF">
         </div>
-        
-        <!-- Abstract Mode Controls -->
-        <div class="effect-control">
-            <button id="abstractBtn">Abstract Mode</button>
-            <label>Abstract Shapes:</label>
-            <button id="pixelBtn">Pixel</button>
-            <button id="blobBtn">Blob</button>
-            <button id="heartBtn">❤️</button>
-            <button id="smileyBtn">😊</button>
-        </div>
-        
+
         <!-- Audio Controls -->
-        <div class="effect-control">
-            <h3>Music Controls</h3>
-            <button id="playPauseBtn">Play</button>
-            <button id="stopBtn">Stop</button>
+        <div class="control-group">
+            <label>Audio Controls</label>
+            <div id="buttons">
+                <button id="playPauseBtn">Play</button>
+                <button id="stopBtn">Stop</button>
+            </div>
         </div>
-        
-        <!-- Video Recording Controls -->
-        <div class="effect-control">
-            <h3>Video Recording</h3>
-            <button id="startRecordingBtn">Start Recording</button>
-            <button id="stopRecordingBtn" disabled>Stop Recording</button>
-            <a id="downloadVideoLink" href="#" download="trippy_effects_video.webm" style="display:none;">Download Video</a>
+
+        <!-- Recording Controls -->
+        <div class="control-group">
+            <label>Recording</label>
+            <div id="buttons">
+                <button id="startRecordingBtn">Start Recording</button>
+                <button id="stopRecordingBtn" disabled>Stop Recording</button>
+            </div>
+            <a id="downloadVideoLink" href="#" download="trippy_video.webm" style="display:none; margin-top:10px;">Download Video</a>
         </div>
-        
-        <!-- Live Visualization Controls -->
-        <div class="effect-control">
-            <h3>Live Visualization</h3>
-            <button id="launchVisualizationBtn">Launch on Second Screen</button>
+
+        <!-- Live Visualization -->
+        <div class="control-group">
+            <label>Live Visualization</label>
+            <button id="launchVisualizationBtn">Launch Visualization</button>
+        </div>
+
+        <!-- Abstract Mode Controls -->
+        <div class="control-group">
+            <label>Abstract Mode</label>
+            <div id="buttons">
+                <button id="abstractBtn">Start Abstract</button>
+                <button id="pixelBtn">Pixel</button>
+                <button id="blobBtn">Blob</button>
+                <button id="heartBtn">Heart</button>
+                <button id="smileyBtn">Smiley</button>
+            </div>
         </div>
     </div>
-    
-    <!-- Media Display -->
-    <canvas id="mediaCanvas"></canvas>
-    
-    <!-- Optional Libraries -->
-    <!-- PDF.js Library for PDF Rendering -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.min.js"></script>
-    
-    <!-- App Script -->
+
+    <div id="canvasContainer">
+        <canvas id="mediaCanvas"></canvas>
+    </div>
+
+    <footer>
+        &copy; 2024 Trippy Effects App
+    </footer>
+
+    <!-- Include app.js -->
     <script src="app.js"></script>
 </body>
 </html>
