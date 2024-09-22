@@ -21,8 +21,91 @@ h1 {
     gap: 20px;
 }
 
-/* Effect Buttons */
-#controls button {
+.control-group {
+    background-color: #222;
+    padding: 15px;
+    border-radius: 10px;
+    width: 300px;
+}
+
+.control-group h3 {
+    margin-bottom: 10px;
+}
+
+.control-group label {
+    display: block;
+    margin: 10px 0 5px;
+}
+
+.control-group input[type="range"],
+.control-group input[type="color"] {
+    width: 100%;
+}
+
+.control-group input[type="color"] {
+    width: 50px;
+    height: 30px;
+    padding: 0;
+    border: none;
+    cursor: pointer;
+}
+
+.control-group .switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+}
+
+.control-group .switch input { 
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.control-group .switch .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.control-group .switch .slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+.control-group .switch input:checked + .slider {
+    background-color: #2196F3;
+}
+
+.control-group .switch input:focus + .slider {
+    box-shadow: 0 0 1px #2196F3;
+}
+
+.control-group .switch input:checked + .slider:before {
+    transform: translateX(26px);
+}
+
+#randomEffectsStatus {
+    margin-left: 10px;
+    vertical-align: middle;
+}
+
+/* Buttons */
+button {
     padding: 10px 20px;
     margin: 10px 0;
     border: none;
@@ -33,113 +116,13 @@ h1 {
     transition: background-color 0.3s;
 }
 
-#controls button:hover {
+button:hover {
     background-color: #666;
 }
 
-#controls button:disabled {
+button:disabled {
     background-color: #333;
     cursor: not-allowed;
-}
-
-/* Slider Containers */
-.slider-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.slider-container label {
-    margin-bottom: 5px;
-}
-
-.slider-container input[type="range"] {
-    width: 200px;
-}
-
-/* Strobe Controls Styling */
-#strobeControls {
-    background-color: #222;
-    padding: 15px;
-    border-radius: 10px;
-    width: 300px;
-}
-
-#strobeControls h3 {
-    margin-bottom: 10px;
-}
-
-#strobeControls label {
-    display: block;
-    margin: 10px 0 5px;
-}
-
-#strobeControls input[type="range"],
-#strobeControls input[type="color"] {
-    width: 100%;
-}
-
-#strobeControls input[type="color"] {
-    width: 50px;
-    height: 30px;
-    padding: 0;
-    border: none;
-    cursor: pointer;
-}
-
-#speedValue {
-    display: inline-block;
-    width: 30px;
-    text-align: center;
-    margin-left: 10px;
-}
-
-/* Audio Controls Styling */
-#audioControls {
-    background-color: #222;
-    padding: 15px;
-    border-radius: 10px;
-    width: 300px;
-}
-
-#audioControls h3 {
-    margin-bottom: 10px;
-}
-
-/* Recording Controls Styling */
-#recordingControls {
-    background-color: #222;
-    padding: 15px;
-    border-radius: 10px;
-    width: 300px;
-}
-
-#recordingControls h3 {
-    margin-bottom: 10px;
-}
-
-/* Live Visualization Controls Styling */
-#liveVisualizationControls {
-    background-color: #222;
-    padding: 15px;
-    border-radius: 10px;
-    width: 300px;
-}
-
-#liveVisualizationControls h3 {
-    margin-bottom: 10px;
-}
-
-/* Abstract Mode Controls Styling */
-#abstractControls {
-    background-color: #222;
-    padding: 15px;
-    border-radius: 10px;
-    width: 300px;
-}
-
-#abstractControls h3 {
-    margin-bottom: 10px;
 }
 
 /* Media Canvas Styling */

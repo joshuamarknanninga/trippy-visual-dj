@@ -3,40 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <title>Trippy Effects App</title>
-    <link href="https://unpkg.com/filepond/dist/filepond.css" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
-    <!-- Include PDF.js Library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.min.js"></script>
+    <!-- PDF.js Library -->
+    <script src="libs/pdfjs/pdf.js"></script>
+    <script>
+        // Specify the workerSrc property
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'libs/pdfjs/pdf.worker.js';
+    </script>
 </head>
 <body>
     <h1>Trippy Effects App</h1>
     
     <!-- File Upload -->
-    <input type="file" id="fileInput" accept="image/gif,video/*,audio/*,image/jpeg,image/jpg,application/pdf">
+    <input type="file" id="fileInput" accept="image/gif, image/jpeg, image/jpg, application/pdf, video/*, audio/*">
     
-    <!-- Control Buttons -->
+    <!-- Control Panels -->
     <div id="controls">
-        <!-- Effect Toggle Buttons -->
-        <button id="glitchBtn">Glitch</button>
-        <div class="slider-container">
+        <!-- Visual Effects Controls -->
+        <div class="control-group">
+            <h3>Visual Effects</h3>
+            <button id="glitchBtn">Glitch</button>
             <label for="glitchIntensity">Glitch Intensity:</label>
             <input type="range" id="glitchIntensity" min="1" max="10" value="5">
-        </div>
-        
-        <button id="analogBtn">Analog</button>
-        <div class="slider-container">
+            
+            <button id="analogBtn">Analog</button>
             <label for="analogIntensity">Analog Intensity:</label>
             <input type="range" id="analogIntensity" min="1" max="10" value="5">
-        </div>
-        
-        <button id="trailsBtn">Trails</button>
-        <div class="slider-container">
+            
+            <button id="trailsBtn">Trails</button>
             <label for="trailsIntensity">Trails Intensity:</label>
             <input type="range" id="trailsIntensity" min="1" max="10" value="5">
         </div>
         
         <!-- Strobe Controls -->
-        <div id="strobeControls">
+        <div class="control-group">
             <h3>Strobe Effect</h3>
             <label for="strobeSpeed">Speed (flashes per second):</label>
             <input type="range" id="strobeSpeed" min="1" max="20" value="5">
@@ -44,18 +44,34 @@
             
             <label for="strobeColor">Color:</label>
             <input type="color" id="strobeColor" value="#FFFFFF">
-            <button id="strobeBtn">Toggle Strobe</button>
+        </div>
+        
+        <!-- Random Effects Toggle -->
+        <div class="control-group">
+            <h3>Random Effects</h3>
+            <label class="switch">
+                <input type="checkbox" id="randomEffectsToggle">
+                <span class="slider round"></span>
+            </label>
+            <span id="randomEffectsStatus">Off</span>
+        </div>
+        
+        <!-- Abstract Mode Controls -->
+        <div class="control-group">
+            <h3>Abstract Mode</h3>
+            <button id="startAbstractBtn">Start Abstract</button>
+            <button id="stopAbstractBtn" disabled>Stop Abstract</button>
         </div>
         
         <!-- Audio Controls -->
-        <div id="audioControls">
+        <div class="control-group">
             <h3>Music Controls</h3>
             <button id="playPauseBtn">Play</button>
             <button id="stopBtn">Stop</button>
         </div>
         
         <!-- Video Recording Controls -->
-        <div id="recordingControls">
+        <div class="control-group">
             <h3>Video Recording</h3>
             <button id="startRecordingBtn">Start Recording</button>
             <button id="stopRecordingBtn" disabled>Stop Recording</button>
@@ -63,25 +79,14 @@
         </div>
         
         <!-- Live Visualization Controls -->
-        <div id="liveVisualizationControls">
+        <div class="control-group">
             <h3>Live Visualization</h3>
             <button id="launchVisualizationBtn">Launch on Second Screen</button>
-        </div>
-        
-        <!-- Abstract Mode Controls -->
-        <div id="abstractControls">
-            <h3>Abstract Mode</h3>
-            <button id="startAbstractBtn">Start Abstract</button>
-            <button id="stopAbstractBtn" disabled>Stop Abstract</button>
         </div>
     </div>
     
     <!-- Media Display -->
     <canvas id="mediaCanvas"></canvas>
-    
-    <!-- Optional Libraries -->
-    <!-- FilePond Library (Optional for Enhanced File Upload) -->
-    <!-- <script src="https://unpkg.com/filepond/dist/filepond.js"></script> -->
     
     <!-- App Script -->
     <script src="app.js"></script>
