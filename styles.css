@@ -21,93 +21,9 @@ h1 {
     gap: 20px;
 }
 
-.control-group {
-    background-color: #222;
-    padding: 15px;
-    border-radius: 10px;
-    width: 300px;
-}
-
-.control-group h3 {
-    margin-bottom: 10px;
-}
-
-.control-group label {
-    display: block;
-    margin: 10px 0 5px;
-}
-
-.control-group input[type="range"],
-.control-group input[type="color"] {
-    width: 100%;
-}
-
-.control-group input[type="color"] {
-    width: 50px;
-    height: 30px;
-    padding: 0;
-    border: none;
-    cursor: pointer;
-}
-
-.control-group .switch {
-    position: relative;
-    display: inline-block;
-    width: 60px;
-    height: 34px;
-}
-
-.control-group .switch input { 
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-.control-group .switch .slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #ccc;
-    transition: .4s;
-    border-radius: 34px;
-}
-
-.control-group .switch .slider:before {
-    position: absolute;
-    content: "";
-    height: 26px;
-    width: 26px;
-    left: 4px;
-    bottom: 4px;
-    background-color: white;
-    transition: .4s;
-    border-radius: 50%;
-}
-
-.control-group .switch input:checked + .slider {
-    background-color: #2196F3;
-}
-
-.control-group .switch input:focus + .slider {
-    box-shadow: 0 0 1px #2196F3;
-}
-
-.control-group .switch input:checked + .slider:before {
-    transform: translateX(26px);
-}
-
-#randomEffectsStatus {
-    margin-left: 10px;
-    vertical-align: middle;
-}
-
-/* Buttons */
 button {
     padding: 10px 20px;
-    margin: 10px 0;
+    margin: 10px;
     border: none;
     background-color: #444;
     color: #fff;
@@ -123,6 +39,128 @@ button:hover {
 button:disabled {
     background-color: #333;
     cursor: not-allowed;
+}
+
+/* Calibration Controls Styling */
+#calibrationControls {
+    background-color: #222;
+    padding: 15px;
+    border-radius: 10px;
+    width: 300px;
+}
+
+#calibrationControls h3 {
+    margin-bottom: 10px;
+}
+
+.calibration {
+    margin-bottom: 15px;
+}
+
+.calibration label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.calibration input[type="range"] {
+    width: 100%;
+}
+
+/* Strobe Controls Styling */
+#strobeControls, #audioControls, #recordingControls, #liveVisualizationControls, #abstractControls, #randomEffectsToggle {
+    background-color: #222;
+    padding: 15px;
+    border-radius: 10px;
+    width: 300px;
+}
+
+#strobeControls h3,
+#audioControls h3,
+#recordingControls h3,
+#liveVisualizationControls h3,
+#abstractControls h3,
+#randomEffectsToggle h3 {
+    margin-bottom: 10px;
+}
+
+#strobeControls label,
+#audioControls label,
+#recordingControls label,
+#liveVisualizationControls label,
+#abstractControls label,
+#randomEffectsToggle label {
+    display: block;
+    margin: 10px 0 5px;
+}
+
+#strobeControls input[type="range"],
+#strobeControls input[type="color"] {
+    width: 100%;
+}
+
+#strobeControls input[type="color"] {
+    width: 50px;
+    height: 30px;
+    padding: 0;
+    border: none;
+    cursor: pointer;
+}
+
+#speedValue {
+    display: inline-block;
+    width: 30px;
+    text-align: center;
+    margin-left: 10px;
+}
+
+/* Toggle Switch Styling */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+}
+
+.switch input { 
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #444;
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: #2196F3;
+}
+
+input:focus + .slider {
+    box-shadow: 0 0 1px #2196F3;
+}
+
+input:checked + .slider:before {
+    transform: translateX(26px);
 }
 
 /* Media Canvas Styling */

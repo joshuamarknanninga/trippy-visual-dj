@@ -3,13 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>Trippy Effects App</title>
+    <link href="https://unpkg.com/filepond/dist/filepond.css" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
-    <!-- PDF.js Library -->
-    <script src="libs/pdfjs/pdf.js"></script>
-    <script>
-        // Specify the workerSrc property
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'libs/pdfjs/pdf.worker.js';
-    </script>
 </head>
 <body>
     <h1>Trippy Effects App</h1>
@@ -17,26 +12,37 @@
     <!-- File Upload -->
     <input type="file" id="fileInput" accept="image/gif, image/jpeg, image/jpg, application/pdf, video/*, audio/*">
     
-    <!-- Control Panels -->
+    <!-- Control Buttons -->
     <div id="controls">
-        <!-- Visual Effects Controls -->
-        <div class="control-group">
-            <h3>Visual Effects</h3>
-            <button id="glitchBtn">Glitch</button>
-            <label for="glitchIntensity">Glitch Intensity:</label>
-            <input type="range" id="glitchIntensity" min="1" max="10" value="5">
+        <button id="glitchBtn">Glitch</button>
+        <button id="analogBtn">Analog</button>
+        <button id="trailsBtn">Trails</button>
+        
+        <!-- Calibration Sliders for Effects -->
+        <div id="calibrationControls">
+            <h3>Effect Calibration</h3>
             
-            <button id="analogBtn">Analog</button>
-            <label for="analogIntensity">Analog Intensity:</label>
-            <input type="range" id="analogIntensity" min="1" max="10" value="5">
+            <!-- Glitch Calibration -->
+            <div class="calibration">
+                <label for="glitchIntensity">Glitch Intensity:</label>
+                <input type="range" id="glitchIntensity" min="0" max="1" step="0.01" value="0.5">
+            </div>
             
-            <button id="trailsBtn">Trails</button>
-            <label for="trailsIntensity">Trails Intensity:</label>
-            <input type="range" id="trailsIntensity" min="1" max="10" value="5">
+            <!-- Analog Calibration -->
+            <div class="calibration">
+                <label for="analogIntensity">Analog Intensity:</label>
+                <input type="range" id="analogIntensity" min="0" max="1" step="0.01" value="0.5">
+            </div>
+            
+            <!-- Trails Calibration -->
+            <div class="calibration">
+                <label for="trailsIntensity">Trails Intensity:</label>
+                <input type="range" id="trailsIntensity" min="0" max="1" step="0.01" value="0.5">
+            </div>
         </div>
         
         <!-- Strobe Controls -->
-        <div class="control-group">
+        <div id="strobeControls">
             <h3>Strobe Effect</h3>
             <label for="strobeSpeed">Speed (flashes per second):</label>
             <input type="range" id="strobeSpeed" min="1" max="20" value="5">
@@ -46,32 +52,15 @@
             <input type="color" id="strobeColor" value="#FFFFFF">
         </div>
         
-        <!-- Random Effects Toggle -->
-        <div class="control-group">
-            <h3>Random Effects</h3>
-            <label class="switch">
-                <input type="checkbox" id="randomEffectsToggle">
-                <span class="slider round"></span>
-            </label>
-            <span id="randomEffectsStatus">Off</span>
-        </div>
-        
-        <!-- Abstract Mode Controls -->
-        <div class="control-group">
-            <h3>Abstract Mode</h3>
-            <button id="startAbstractBtn">Start Abstract</button>
-            <button id="stopAbstractBtn" disabled>Stop Abstract</button>
-        </div>
-        
         <!-- Audio Controls -->
-        <div class="control-group">
+        <div id="audioControls">
             <h3>Music Controls</h3>
             <button id="playPauseBtn">Play</button>
             <button id="stopBtn">Stop</button>
         </div>
         
         <!-- Video Recording Controls -->
-        <div class="control-group">
+        <div id="recordingControls">
             <h3>Video Recording</h3>
             <button id="startRecordingBtn">Start Recording</button>
             <button id="stopRecordingBtn" disabled>Stop Recording</button>
@@ -79,14 +68,46 @@
         </div>
         
         <!-- Live Visualization Controls -->
-        <div class="control-group">
+        <div id="liveVisualizationControls">
             <h3>Live Visualization</h3>
             <button id="launchVisualizationBtn">Launch on Second Screen</button>
+        </div>
+        
+        <!-- Abstract Mode Controls -->
+        <div id="abstractControls">
+            <h3>Abstract Mode</h3>
+            <button id="startAbstractBtn">Start Abstract</button>
+            <button id="stopAbstractBtn" disabled>Stop Abstract</button>
+        </div>
+        
+        <!-- Toggle Slider for Random Effects -->
+        <div id="randomEffectsToggle">
+            <h3>Random Effects</h3>
+            <label class="switch">
+                <input type="checkbox" id="toggleRandomEffects">
+                <span class="slider round"></span>
+            </label>
         </div>
     </div>
     
     <!-- Media Display -->
     <canvas id="mediaCanvas"></canvas>
+    
+    <!-- Shader Scripts -->
+    <script id="glitchShader" type="x-shader/x-fragment" src="shaders/glitch.frag"></script>
+    <script id="analogShader" type="x-shader/x-fragment" src="shaders/analog.frag"></script>
+    <script id="trailsShader" type="x-shader/x-fragment" src="shaders/trails.frag"></script>
+    <script id="strobeShader" type="x-shader/x-fragment" src="shaders/strobe.frag"></script>
+    
+    <!-- Three.js Library (Optional for Advanced Effects) -->
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r142/three.min.js"></script> -->
+    
+    <!-- FilePond Library (Optional for Enhanced File Upload) -->
+    <!-- <script src="https://unpkg.com/filepond/dist/filepond.js"></script> -->
+    
+    <!-- PDF.js Library -->
+    <script src="libs/pdfjs/pdf.js"></script>
+    <script src="libs/pdfjs/pdf.worker.js"></script>
     
     <!-- App Script -->
     <script src="app.js"></script>
