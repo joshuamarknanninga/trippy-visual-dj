@@ -8,25 +8,44 @@ const fileInput = document.getElementById('fileInput');
 const canvas = document.getElementById('mediaCanvas');
 const ctx = canvas.getContext('2d');
 
+// Effect Buttons
 const glitchBtn = document.getElementById('glitchBtn');
 const analogBtn = document.getElementById('analogBtn');
 const trailsBtn = document.getElementById('trailsBtn');
+const strobeBtn = document.getElementById('strobeBtn');
+const startAbstractBtn = document.getElementById('startAbstractBtn');
+const stopAbstractBtn = document.getElementById('stopAbstractBtn');
 
-const strobeSpeedSlider = document.getElementById('strobeSpeed');
+// Effect Sliders
+const glitchSpeedSlider = document.getElementById('glitchSpeed');
+const glitchIntensitySlider = document.getElementById('glitchIntensity');
+const analogSpeedSlider = document.getElementById('analogSpeed');
+const analogIntensitySlider = document.getElementById('analogIntensity');
+const trailsSpeedSlider = document.getElementById('trailsSpeed');
+const trailsIntensitySlider = document.getElementById('trailsIntensity');
+const strobeSpeedSliderControl = document.getElementById('strobeSpeed');
 const strobeColorPicker = document.getElementById('strobeColor');
-const speedValueDisplay = document.getElementById('speedValue');
 
+// Effect Values Display
+const glitchSpeedValue = document.getElementById('glitchSpeedValue');
+const glitchIntensityValue = document.getElementById('glitchIntensityValue');
+const analogSpeedValue = document.getElementById('analogSpeedValue');
+const analogIntensityValue = document.getElementById('analogIntensityValue');
+const trailsSpeedValue = document.getElementById('trailsSpeedValue');
+const trailsIntensityValue = document.getElementById('trailsIntensityValue');
+const strobeSpeedValue = document.getElementById('strobeSpeedValue');
+
+// Audio Controls
 const playPauseBtn = document.getElementById('playPauseBtn');
 const stopBtn = document.getElementById('stopBtn');
 
+// Recording Controls
 const startRecordingBtn = document.getElementById('startRecordingBtn');
 const stopRecordingBtn = document.getElementById('stopRecordingBtn');
 const downloadVideoLink = document.getElementById('downloadVideoLink');
 
+// Live Visualization Controls
 const launchVisualizationBtn = document.getElementById('launchVisualizationBtn');
-
-const startAbstractBtn = document.getElementById('startAbstractBtn'); // New Button
-const stopAbstractBtn = document.getElementById('stopAbstractBtn');   // New Button
 
 // ------------------------------
 // 2. Initialize Variables
@@ -50,8 +69,8 @@ let isAbstractActive = false;
 
 // Strobe Effect Variables
 let strobeInterval = null;
-let strobeSpeed = 5; // flashes per second
-let strobeColor = '#FFFFFF';
+let strobeSpeed = parseInt(strobeSpeedSliderControl.value); // flashes per second
+let strobeColor = strobeColorPicker.value;
 let showStrobe = false;
 
 // Audio Visualization Variables
@@ -86,10 +105,46 @@ fileInput.addEventListener('change', handleFileUpload);
 glitchBtn.addEventListener('click', toggleGlitch);
 analogBtn.addEventListener('click', toggleAnalog);
 trailsBtn.addEventListener('click', toggleTrails);
+strobeBtn.addEventListener('click', toggleStrobe);
+startAbstractBtn.addEventListener('click', startAbstractMode);
+stopAbstractBtn.addEventListener('click', stopAbstractMode);
 
-// Strobe Controls
-strobeSpeedSlider.addEventListener('input', updateStrobeSpeed);
-strobeColorPicker.addEventListener('input', updateStrobeColor);
+// Effect Sliders
+glitchSpeedSlider.addEventListener('input', () => {
+    glitchSpeed = parseInt(glitchSpeedSlider.value);
+    glitchSpeedValue.textContent = glitchSpeed;
+});
+glitchIntensitySlider.addEventListener('input', () => {
+    glitchIntensity = parseInt(glitchIntensitySlider.value);
+    glitchIntensityValue.textContent = glitchIntensity;
+});
+analogSpeedSlider.addEventListener('input', () => {
+    analogSpeed = parseInt(analogSpeedSlider.value);
+    analogSpeedValue.textContent = analogSpeed;
+});
+analogIntensitySlider.addEventListener('input', () => {
+    analogIntensity = parseInt(analogIntensitySlider.value);
+    analogIntensityValue.textContent = analogIntensity;
+});
+trailsSpeedSlider.addEventListener('input', () => {
+    trailsSpeed = parseInt(trailsSpeedSlider.value);
+    trailsSpeedValue.textContent = trailsSpeed;
+});
+trailsIntensitySlider.addEventListener('input', () => {
+    trailsIntensity = parseInt(trailsIntensitySlider.value);
+    trailsIntensityValue.textContent = trailsIntensity;
+});
+strobeSpeedSliderControl.addEventListener('input', () => {
+    strobeSpeed = parseInt(strobeSpeedSliderControl.value);
+    strobeSpeedValue.textContent = strobeSpeed;
+    if (isStrobeActive) {
+        clearInterval(strobeInterval);
+        strobeInterval = setInterval(toggleStrobeVisibility, 1000 / strobeSpeed);
+    }
+});
+strobeColorPicker.addEventListener('input', () => {
+    strobeColor = strobeColorPicker.value;
+});
 
 // Audio Controls
 playPauseBtn.addEventListener('click', togglePlayPause);
@@ -101,10 +156,6 @@ stopRecordingBtn.addEventListener('click', stopRecording);
 
 // Live Visualization Controls
 launchVisualizationBtn.addEventListener('click', launchVisualization);
-
-// Abstract Mode Controls (New)
-startAbstractBtn.addEventListener('click', startAbstractMode);
-stopAbstractBtn.addEventListener('click', stopAbstractMode);
 
 // ------------------------------
 // 4. Functions Implementation
@@ -159,9 +210,13 @@ function clearEffects() {
     isStrobeActive = false;
     isAbstractActive = false;
 
+    // Reset button colors
     glitchBtn.style.backgroundColor = '#444';
     analogBtn.style.backgroundColor = '#444';
     trailsBtn.style.backgroundColor = '#444';
+    strobeBtn.style.backgroundColor = '#444';
+    stopAbstractBtn.disabled = true;
+    startAbstractBtn.disabled = false;
 
     // Stop strobe
     clearInterval(strobeInterval);
@@ -187,8 +242,7 @@ function handleVideoFile(file) {
     video.play();
 
     video.addEventListener('loadeddata', () => {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+        setCanvasSize(video.videoWidth, video.videoHeight);
         mainAnimationFrameId = requestAnimationFrame(drawVideoFrame);
     });
 }
@@ -209,8 +263,7 @@ function handleGifFile(file) {
     const img = new Image();
     img.src = URL.createObjectURL(file);
     img.onload = () => {
-        canvas.width = img.width;
-        canvas.height = img.height;
+        setCanvasSize(img.width, img.height);
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     }
 }
@@ -239,37 +292,37 @@ function handleAudioFile(file) {
 }
 
 // 4.8. Toggle Glitch Effect
+let glitchSpeed = parseInt(glitchSpeedSlider.value);
+let glitchIntensity = parseInt(glitchIntensitySlider.value);
+
 function toggleGlitch() {
     isGlitch = !isGlitch;
     glitchBtn.style.backgroundColor = isGlitch ? '#666' : '#444';
 }
 
 // 4.9. Toggle Analog Effect
+let analogSpeed = parseInt(analogSpeedSlider.value);
+let analogIntensity = parseInt(analogIntensitySlider.value);
+
 function toggleAnalog() {
     isAnalog = !isAnalog;
     analogBtn.style.backgroundColor = isAnalog ? '#666' : '#444';
 }
 
 // 4.10. Toggle Trails Effect
+let trailsSpeed = parseInt(trailsSpeedSlider.value);
+let trailsIntensity = parseInt(trailsIntensitySlider.value);
+
 function toggleTrails() {
     isTrails = !isTrails;
     trailsBtn.style.backgroundColor = isTrails ? '#666' : '#444';
 }
 
 // 4.11. Update Strobe Speed
-function updateStrobeSpeed(event) {
-    strobeSpeed = parseInt(event.target.value);
-    speedValueDisplay.textContent = strobeSpeed;
-    if (isStrobeActive) {
-        clearInterval(strobeInterval);
-        strobeInterval = setInterval(toggleStrobeVisibility, 1000 / strobeSpeed);
-    }
-}
+// Already handled via event listener
 
 // 4.12. Update Strobe Color
-function updateStrobeColor(event) {
-    strobeColor = event.target.value;
-}
+// Already handled via event listener
 
 // 4.13. Toggle Play/Pause Audio
 function togglePlayPause() {
@@ -351,28 +404,34 @@ function triggerRandomEffect() {
 
     switch (randomEffect) {
         case 'glitch':
-            isGlitch = true;
-            glitchBtn.style.backgroundColor = '#666';
-            setTimeout(() => {
-                isGlitch = false;
-                glitchBtn.style.backgroundColor = '#444';
-            }, 300);
+            if (!isGlitch) {
+                isGlitch = true;
+                glitchBtn.style.backgroundColor = '#666';
+                setTimeout(() => {
+                    isGlitch = false;
+                    glitchBtn.style.backgroundColor = '#444';
+                }, 300);
+            }
             break;
         case 'analog':
-            isAnalog = true;
-            analogBtn.style.backgroundColor = '#666';
-            setTimeout(() => {
-                isAnalog = false;
-                analogBtn.style.backgroundColor = '#444';
-            }, 300);
+            if (!isAnalog) {
+                isAnalog = true;
+                analogBtn.style.backgroundColor = '#666';
+                setTimeout(() => {
+                    isAnalog = false;
+                    analogBtn.style.backgroundColor = '#444';
+                }, 300);
+            }
             break;
         case 'trails':
-            isTrails = true;
-            trailsBtn.style.backgroundColor = '#666';
-            setTimeout(() => {
-                isTrails = false;
-                trailsBtn.style.backgroundColor = '#444';
-            }, 300);
+            if (!isTrails) {
+                isTrails = true;
+                trailsBtn.style.backgroundColor = '#666';
+                setTimeout(() => {
+                    isTrails = false;
+                    trailsBtn.style.backgroundColor = '#444';
+                }, 300);
+            }
             break;
         case 'strobe':
             toggleStrobe();
@@ -432,19 +491,19 @@ function applyGlitchEffect() {
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
 
-    // Introduce random pixel shifts
-    for (let i = 0; i < 10; i++) { // Number of glitch lines
+    // Introduce random pixel shifts based on intensity
+    for (let i = 0; i < glitchIntensity; i++) { // Number of glitch lines
         const y = Math.floor(Math.random() * canvas.height);
         const start = y * canvas.width * 4;
-        const length = Math.floor(Math.random() * canvas.width / 2);
+        const length = Math.floor(Math.random() * (canvas.width / 2));
         const offset = Math.floor(Math.random() * 100);
 
         for (let x = 0; x < length; x++) {
             const index = start + x * 4;
             if (index + offset * 4 < data.length) {
-                data[index] = data[index + offset * 4];         // Red
-                data[index + 1] = data[index + offset * 4 + 1]; // Green
-                data[index + 2] = data[index + offset * 4 + 2]; // Blue
+                data[index] = data[index + offset * 4];           // Red
+                data[index + 1] = data[index + offset * 4 + 1];   // Green
+                data[index + 2] = data[index + offset * 4 + 2];   // Blue
             }
         }
     }
@@ -454,35 +513,25 @@ function applyGlitchEffect() {
 
 // 4.21. Apply Analog Effect
 function applyAnalogEffect() {
-    // Simple color shifting with sine wave modulation
+    // Apply a color overlay based on intensity
     ctx.globalCompositeOperation = 'multiply';
-    ctx.fillStyle = 'rgba(0, 255, 255, 0.05)'; // Cyan tint
+    ctx.fillStyle = `rgba(0, 255, 255, ${analogIntensity / 100})`; // Cyan tint with variable intensity
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.globalCompositeOperation = 'source-over';
 }
 
 // 4.22. Apply Trails Effect
-let trailsData = null;
-
 function applyTrailsEffect() {
-    if (!trailsData) {
-        trailsData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    }
-
-    // Fade the previous frame
-    for (let i = 0; i < trailsData.data.length; i += 4) {
-        trailsData.data[i] *= 0.95;     // Red
-        trailsData.data[i + 1] *= 0.95; // Green
-        trailsData.data[i + 2] *= 0.95; // Blue
-    }
-
-    ctx.putImageData(trailsData, 0, 0);
-    ctx.drawImage(video || (audio && !audio.paused ? audio : null), 0, 0, canvas.width, canvas.height);
+    // Apply fading effect based on intensity
+    ctx.fillStyle = `rgba(0, 0, 0, ${1 - trailsIntensity / 100})`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 
 // 4.23. Toggle Strobe Effect
 function toggleStrobe() {
     isStrobeActive = !isStrobeActive;
+    strobeBtn.style.backgroundColor = isStrobeActive ? '#666' : '#444';
+
     if (isStrobeActive) {
         strobeInterval = setInterval(toggleStrobeVisibility, 1000 / strobeSpeed);
     } else {
@@ -498,7 +547,7 @@ function toggleStrobeVisibility() {
         ctx.fillStyle = strobeColor;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
     } else {
-        // Clear the strobe by redrawing the media
+        // Redraw the media or clear the canvas
         if (video && !video.paused) {
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         } else if (audio && !audio.paused) {
@@ -627,9 +676,9 @@ function launchVisualization() {
                         const offset = Math.floor(Math.random() * 20) * 4;
 
                         if (index + offset < data.length) {
-                            data[index] = data[index + offset];         // Red
-                            data[index + 1] = data[index + offset + 1]; // Green
-                            data[index + 2] = data[index + offset + 2]; // Blue
+                            data[index] = data[index + offset];           // Red
+                            data[index + 1] = data[index + offset + 1];   // Green
+                            data[index + 2] = data[index + offset + 2];   // Blue
                         }
                     }
                     ctx.putImageData(imgData, 0, 0);
@@ -643,21 +692,10 @@ function launchVisualization() {
                     ctx.globalCompositeOperation = 'source-over';
                 }
 
-                let trailsData = null;
-
                 function applyTrailsEffect() {
-                    if (!trailsData) {
-                        trailsData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                    }
-
-                    // Fade the previous frame
-                    for (let i = 0; i < trailsData.data.length; i += 4) {
-                        trailsData.data[i] *= 0.95;     // Red
-                        trailsData.data[i + 1] *= 0.95; // Green
-                        trailsData.data[i + 2] *= 0.95; // Blue
-                    }
-
-                    ctx.putImageData(trailsData, 0, 0);
+                    // Apply fading effect
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
                 }
 
                 // Handle Strobe Effect
@@ -752,8 +790,8 @@ function stopAbstractMode() {
         abstractAnimationFrameId = null;
     }
 
-    // Clear abstract shapes
-    abstractShapes.length = 0;
+    // Clear abstract shapes by clearing the canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
 // 4.30. Abstract Loop
@@ -791,7 +829,8 @@ function addRandomShape() {
 
 // 4.32. Update Abstract Shapes
 function updateAbstractShapes() {
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+    // Apply fading effect based on trailsIntensity
+    ctx.fillStyle = `rgba(0, 0, 0, ${1 - trailsIntensity / 100})`;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     abstractShapes.forEach((shape, index) => {
@@ -812,9 +851,6 @@ function updateAbstractShapes() {
         if (shape.y + shape.size > canvas.height || shape.y - shape.size < 0) {
             shape.dy *= -1;
         }
-
-        // Optionally, reduce size over time
-        // shape.size *= 0.99;
     });
 }
 

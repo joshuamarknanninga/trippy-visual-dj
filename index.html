@@ -1,9 +1,9 @@
+<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Trippy Effects App</title>
-    <link href="https://unpkg.com/filepond/dist/filepond.css" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -12,18 +12,50 @@
     <!-- File Upload -->
     <input type="file" id="fileInput" accept="image/gif,video/*,audio/*">
     
-    <!-- Control Buttons -->
+    <!-- Control Buttons and Sliders -->
     <div id="controls">
-        <button id="glitchBtn">Glitch</button>
-        <button id="analogBtn">Analog</button>
-        <button id="trailsBtn">Trails</button>
+        <!-- Effect Toggle Buttons -->
+        <div class="effect-control">
+            <button id="glitchBtn">Glitch</button>
+            <label for="glitchSpeed">Glitch Speed:</label>
+            <input type="range" id="glitchSpeed" min="1" max="20" value="5">
+            <span id="glitchSpeedValue">5</span>
+            
+            <label for="glitchIntensity">Glitch Intensity:</label>
+            <input type="range" id="glitchIntensity" min="1" max="100" value="50">
+            <span id="glitchIntensityValue">50</span>
+        </div>
+        
+        <div class="effect-control">
+            <button id="analogBtn">Analog</button>
+            <label for="analogSpeed">Analog Speed:</label>
+            <input type="range" id="analogSpeed" min="1" max="20" value="5">
+            <span id="analogSpeedValue">5</span>
+            
+            <label for="analogIntensity">Analog Intensity:</label>
+            <input type="range" id="analogIntensity" min="1" max="100" value="50">
+            <span id="analogIntensityValue">50</span>
+        </div>
+        
+        <div class="effect-control">
+            <button id="trailsBtn">Trails</button>
+            <label for="trailsSpeed">Trails Speed:</label>
+            <input type="range" id="trailsSpeed" min="1" max="20" value="5">
+            <span id="trailsSpeedValue">5</span>
+            
+            <label for="trailsIntensity">Trails Intensity:</label>
+            <input type="range" id="trailsIntensity" min="1" max="100" value="50">
+            <span id="trailsIntensityValue">50</span>
+        </div>
         
         <!-- Strobe Controls -->
         <div id="strobeControls">
             <h3>Strobe Effect</h3>
+            <button id="strobeBtn">Strobe</button>
+            
             <label for="strobeSpeed">Speed (flashes per second):</label>
             <input type="range" id="strobeSpeed" min="1" max="20" value="5">
-            <span id="speedValue">5</span>
+            <span id="strobeSpeedValue">5</span>
             
             <label for="strobeColor">Color:</label>
             <input type="color" id="strobeColor" value="#FFFFFF">
@@ -51,20 +83,16 @@
         </div>
         
         <!-- Abstract Mode Controls -->
-        <div id="abstractModeControls">
+        <div id="abstractControls">
             <h3>Abstract Mode</h3>
-            <button id="startAbstractBtn">Start Abstract Mode</button>
-            <button id="stopAbstractBtn" disabled>Stop Abstract Mode</button>
+            <button id="startAbstractBtn">Start Abstract</button>
+            <button id="stopAbstractBtn" disabled>Stop Abstract</button>
         </div>
     </div>
     
     <!-- Media Display -->
     <canvas id="mediaCanvas"></canvas>
     
-    <!-- Three.js Library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r142/three.min.js"></script>
-    <!-- FilePond Library -->
-    <script src="https://unpkg.com/filepond/dist/filepond.js"></script>
     <!-- App Script -->
     <script src="app.js"></script>
 </body>
