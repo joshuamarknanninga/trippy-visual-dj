@@ -44,7 +44,6 @@ const stopAbstractBtn = document.getElementById('stopAbstractBtn');
 // Media Elements
 let videoElement = null;
 let audioElement = null;
-let imageElement = null;
 
 // Animation Frames
 let mainAnimationFrameId = null;
@@ -82,8 +81,8 @@ let visualizationWindow = null;
 let broadcastChannel = null;
 
 // Abstract Mode Variables
-const abstractShapes = [];
-const maxShapes = 100;
+const abstractPixels = [];
+const maxPixels = 1000;
 
 // ------------------------------
 // 3. Event Listeners
@@ -136,12 +135,10 @@ function handleFileUpload(event) {
 
     if (file.type.startsWith('video/')) {
         handleVideoFile(file);
-    } else if (file.type.startsWith('image/') || file.type === 'application/pdf') {
-        if (file.type === 'application/pdf') {
-            handlePDFFile(file);
-        } else {
-            handleImageFile(file);
-        }
+    } else if (file.type.startsWith('image/') && (file.type === 'image/gif' || file.type === 'image/jpeg' || file.type === 'image/jpg')) {
+        handleImageFile(file);
+    } else if (file.type === 'application/pdf') {
+        handlePDFFile(file);
     } else if (file.type.startsWith('audio/')) {
         handleAudioFile(file);
     } else {
@@ -164,11 +161,6 @@ function clearMedia() {
         audioElement.src = "";
         audioElement = null;
         stopAudioVisualization();
-    }
-
-    // Stop and remove image
-    if (imageElement) {
-        imageElement = null;
     }
 
     // Clear canvas
@@ -238,41 +230,42 @@ function drawVideoFrame() {
 
 // 4.6. Handle Image File
 function handleImageFile(file) {
-    imageElement = new Image();
-    imageElement.src = URL.createObjectURL(file);
-    imageElement.onload = () => {
-        canvas.width = imageElement.width;
-        canvas.height = imageElement.height;
-        ctx.drawImage(imageElement, 0, 0, canvas.width, canvas.height);
+    const img = new Image();
+    img.src = URL.createObjectURL(file);
+    img.onload = () => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     }
 }
 
 // 4.7. Handle PDF File
 function handlePDFFile(file) {
+    if (typeof pdfjsLib === 'undefined') {
+        alert('PDF.js library is not loaded.');
+        return;
+    }
+
     const fileReader = new FileReader();
     fileReader.onload = function() {
         const typedarray = new Uint8Array(this.result);
 
-        if (pdfjsLib) {
-            pdfjsLib.getDocument(typedarray).promise.then(function(pdf) {
-                // Fetch the first page
-                pdf.getPage(1).then(function(page) {
-                    const viewport = page.getViewport({ scale: 1.5 });
-                    canvas.width = viewport.width;
-                    canvas.height = viewport.height;
+        pdfjsLib.getDocument(typedarray).promise.then(function(pdf) {
+            // Fetch the first page
+            pdf.getPage(1).then(function(page) {
+                const viewport = page.getViewport({ scale: 1.5 });
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
 
-                    const renderContext = {
-                        canvasContext: ctx,
-                        viewport: viewport
-                    };
-                    page.render(renderContext);
-                });
-            }, function(reason) {
-                console.error(reason);
+                const renderContext = {
+                    canvasContext: ctx,
+                    viewport: viewport
+                };
+                page.render(renderContext);
             });
-        } else {
-            alert('PDF.js library is not loaded.');
-        }
+        }, function(reason) {
+            console.error(reason);
+        });
     };
     fileReader.readAsArrayBuffer(file);
 }
@@ -322,24 +315,21 @@ function toggleTrails() {
 function updateGlitchIntensity(event) {
     const value = parseFloat(event.target.value);
     glitchIntensityValue.textContent = value.toFixed(2);
-    // Store the intensity value
-    canvas.glitchIntensity = value;
+    // The intensity will control the number of pixels altered
 }
 
 // 4.13. Update Analog Intensity
 function updateAnalogIntensity(event) {
     const value = parseFloat(event.target.value);
     analogIntensityValue.textContent = value.toFixed(2);
-    // Store the intensity value
-    canvas.analogIntensity = value;
+    // The intensity will control the opacity of the color overlay
 }
 
 // 4.14. Update Trails Intensity
 function updateTrailsIntensity(event) {
     const value = parseFloat(event.target.value);
     trailsIntensityValue.textContent = value.toFixed(2);
-    // Store the intensity value
-    canvas.trailsIntensity = value;
+    // The intensity will control the fade rate
 }
 
 // 4.15. Update Strobe Speed
@@ -437,28 +427,34 @@ function triggerRandomEffect() {
 
     switch (randomEffect) {
         case 'glitch':
-            isGlitch = true;
-            glitchBtn.style.backgroundColor = '#666';
-            setTimeout(() => {
-                isGlitch = false;
-                glitchBtn.style.backgroundColor = '#444';
-            }, 300);
+            if (!isGlitch) {
+                isGlitch = true;
+                glitchBtn.style.backgroundColor = '#666';
+                setTimeout(() => {
+                    isGlitch = false;
+                    glitchBtn.style.backgroundColor = '#444';
+                }, 300);
+            }
             break;
         case 'analog':
-            isAnalog = true;
-            analogBtn.style.backgroundColor = '#666';
-            setTimeout(() => {
-                isAnalog = false;
-                analogBtn.style.backgroundColor = '#444';
-            }, 300);
+            if (!isAnalog) {
+                isAnalog = true;
+                analogBtn.style.backgroundColor = '#666';
+                setTimeout(() => {
+                    isAnalog = false;
+                    analogBtn.style.backgroundColor = '#444';
+                }, 300);
+            }
             break;
         case 'trails':
-            isTrails = true;
-            trailsBtn.style.backgroundColor = '#666';
-            setTimeout(() => {
-                isTrails = false;
-                trailsBtn.style.backgroundColor = '#444';
-            }, 300);
+            if (!isTrails) {
+                isTrails = true;
+                trailsBtn.style.backgroundColor = '#666';
+                setTimeout(() => {
+                    isTrails = false;
+                    trailsBtn.style.backgroundColor = '#444';
+                }, 300);
+            }
             break;
         case 'strobe':
             toggleStrobe();
@@ -517,36 +513,21 @@ function applyVisualEffects() {
 function applyGlitchEffect() {
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
-    const glitchIntensity = glitchIntensitySlider.value; // 0 to 1
 
-    const glitchAmount = Math.floor(10 * glitchIntensity); // Number of glitch lines
+    // Determine number of pixels to glitch based on intensity
+    const intensity = parseFloat(glitchIntensitySlider.value); // 0 to 1
+    const numberOfPixels = Math.floor(canvas.width * canvas.height * intensity * 0.01); // Adjust factor as needed
 
-    for (let i = 0; i < glitchAmount; i++) {
-        const y = Math.floor(Math.random() * canvas.height);
+    for (let i = 0; i < numberOfPixels; i++) {
         const x = Math.floor(Math.random() * canvas.width);
-        const width = Math.floor(Math.random() * 20 * glitchIntensity); // Width of glitch strip
-        const height = 1;
+        const y = Math.floor(Math.random() * canvas.height);
+        const index = (y * canvas.width + x) * 4;
 
-        // Randomly shift the pixels horizontally
-        const shift = Math.floor(Math.random() * 20 * glitchIntensity) - 10 * glitchIntensity;
-
-        for (let w = 0; w < width; w++) {
-            const srcX = x + w;
-            const destX = srcX + shift;
-
-            if (destX >= 0 && destX < canvas.width) {
-                for (let h = 0; h < height; h++) {
-                    const srcIndex = ((y + h) * canvas.width + srcX) * 4;
-                    const destIndex = ((y + h) * canvas.width + destX) * 4;
-
-                    // Swap RGB values
-                    data[destIndex] = data[srcIndex];
-                    // data[srcIndex + 1] = data[srcIndex + 1]; // Green remains the same
-                    // data[srcIndex + 2] = data[srcIndex + 2]; // Blue remains the same
-                    // Alpha remains the same
-                }
-            }
-        }
+        // Randomly alter the pixel's color
+        data[index] = Math.floor(Math.random() * 256);     // Red
+        data[index + 1] = Math.floor(Math.random() * 256); // Green
+        data[index + 2] = Math.floor(Math.random() * 256); // Blue
+        // Alpha remains unchanged
     }
 
     ctx.putImageData(imageData, 0, 0);
@@ -554,17 +535,19 @@ function applyGlitchEffect() {
 
 // 4.25. Apply Analog Effect
 function applyAnalogEffect() {
-    const analogIntensity = analogIntensitySlider.value; // 0 to 1
-    ctx.globalCompositeOperation = 'overlay';
-    ctx.fillStyle = `rgba(0, 255, 255, ${analogIntensity * 0.1})`; // Cyan tint with adjustable opacity
+    // Determine intensity based on slider
+    const intensity = parseFloat(analogIntensitySlider.value); // 0 to 1
+    ctx.globalAlpha = intensity * 0.1; // Adjust alpha for intensity
+    ctx.fillStyle = 'rgba(0, 255, 255, 1)'; // Cyan tint
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1.0; // Reset alpha
 }
 
 // 4.26. Apply Trails Effect
 function applyTrailsEffect() {
-    const trailsIntensity = trailsIntensitySlider.value; // 0 to 1
-    ctx.fillStyle = `rgba(0, 0, 0, ${1 - trailsIntensity * 0.1})`; // Lower alpha means longer trails
+    // Determine intensity based on slider
+    const intensity = parseFloat(trailsIntensitySlider.value); // 0 to 1
+    ctx.fillStyle = `rgba(0, 0, 0, ${1 - intensity})`; // Higher intensity means less fading
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 
@@ -586,13 +569,10 @@ function toggleStrobeVisibility() {
         ctx.fillStyle = strobeColor;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
     } else {
-        // Clear the strobe by redrawing the media
+        // Redraw the current frame without strobe
         if (videoElement && !videoElement.paused) {
             ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-        } else if (imageElement) {
-            ctx.drawImage(imageElement, 0, 0, canvas.width, canvas.height);
         } else if (audioElement && !audioElement.paused) {
-            // Optionally, you can leave trails or clear
             ctx.clearRect(0, 0, canvas.width, canvas.height);
         } else {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -711,36 +691,19 @@ function launchVisualization() {
                     // Implement a simple glitch effect
                     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                     const data = imageData.data;
-                    const glitchIntensity = 0.5; // Fixed intensity for visualization window
 
-                    const glitchAmount = Math.floor(10 * glitchIntensity); // Number of glitch lines
+                    const numberOfPixels = Math.floor(canvas.width * canvas.height * 0.01); // 1% of pixels
 
-                    for (let i = 0; i < glitchAmount; i++) {
-                        const y = Math.floor(Math.random() * canvas.height);
+                    for (let i = 0; i < numberOfPixels; i++) {
                         const x = Math.floor(Math.random() * canvas.width);
-                        const width = Math.floor(Math.random() * 20 * glitchIntensity); // Width of glitch strip
-                        const height = 1;
+                        const y = Math.floor(Math.random() * canvas.height);
+                        const index = (y * canvas.width + x) * 4;
 
-                        // Randomly shift the pixels horizontally
-                        const shift = Math.floor(Math.random() * 20 * glitchIntensity) - 10 * glitchIntensity;
-
-                        for (let w = 0; w < width; w++) {
-                            const srcX = x + w;
-                            const destX = srcX + shift;
-
-                            if (destX >= 0 && destX < canvas.width) {
-                                for (let h = 0; h < height; h++) {
-                                    const srcIndex = ((y + h) * canvas.width + srcX) * 4;
-                                    const destIndex = ((y + h) * canvas.width + destX) * 4;
-
-                                    // Swap RGB values
-                                    data[destIndex] = data[srcIndex];
-                                    // data[srcIndex + 1] = data[srcIndex + 1]; // Green remains the same
-                                    // data[srcIndex + 2] = data[srcIndex + 2]; // Blue remains the same
-                                    // Alpha remains the same
-                                }
-                            }
-                        }
+                        // Randomly alter the pixel's color
+                        data[index] = Math.floor(Math.random() * 256);     // Red
+                        data[index + 1] = Math.floor(Math.random() * 256); // Green
+                        data[index + 2] = Math.floor(Math.random() * 256); // Blue
+                        // Alpha remains unchanged
                     }
 
                     ctx.putImageData(imageData, 0, 0);
@@ -748,96 +711,62 @@ function launchVisualization() {
 
                 function applyAnalogEffect() {
                     // Apply a color overlay
-                    ctx.globalCompositeOperation = 'overlay';
-                    ctx.fillStyle = 'rgba(0, 255, 255, 0.05)'; // Cyan tint with fixed opacity
+                    ctx.globalAlpha = 0.1;
+                    ctx.fillStyle = 'rgba(0, 255, 255, 1)'; // Cyan tint
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.globalAlpha = 1.0;
                 }
 
                 function applyTrailsEffect() {
-                    const trailsIntensity = 0.5; // Fixed intensity for visualization window
-                    ctx.fillStyle = 'rgba(0, 0, 0, ' + (1 - trailsIntensity * 0.1) + ')';
+                    // Apply trails by fading the canvas
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.05)'; // Adjust opacity for trails intensity
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
                 }
 
                 // Handle Strobe Effect
-                let strobeInterval = null;
-                let showStrobe = false;
-                let strobeColor = '#FFFFFF';
-                let strobeSpeed = 5;
-
                 function handleStrobe(show, color) {
                     if (show) {
-                        strobeColor = color;
-                        strobeSpeed = 5; // Fixed speed for visualization window
-                        strobeInterval = setInterval(() => {
-                            showStrobe = !showStrobe;
-                            if (showStrobe) {
-                                ctx.fillStyle = strobeColor;
-                                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                            } else {
-                                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                            }
-                        }, 1000 / strobeSpeed);
+                        ctx.fillStyle = color;
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
                     } else {
-                        clearInterval(strobeInterval);
-                        strobeInterval = null;
                         ctx.clearRect(0, 0, canvas.width, canvas.height);
                     }
                 }
 
-                // Abstract Effect
-                const abstractShapes = [];
-                const maxShapes = 100;
+                // Abstract Mode
+                const abstractPixels = [];
+                const maxPixels = 1000;
 
                 function applyAbstractEffect() {
-                    const size = Math.random() * 50 + 10;
-                    const x = Math.random() * canvas.width;
-                    const y = Math.random() * canvas.height;
-                    const dx = (Math.random() - 0.5) * 5;
-                    const dy = (Math.random() - 0.5) * 5;
-                    const color = 'hsl(' + (Math.random() * 360) + ', 100%, 50%)';
+                    const size = 1; // Single pixel
+                    const x = Math.floor(Math.random() * canvas.width);
+                    const y = Math.floor(Math.random() * canvas.height);
+                    const color = `hsl(${Math.random() * 360}, 100%, 50%)`;
 
-                    const shape = { x, y, dx, dy, size, color };
-                    abstractShapes.push(shape);
+                    abstractPixels.push({ x, y, color });
 
-                    // Limit number of shapes
-                    if (abstractShapes.length > maxShapes) {
-                        abstractShapes.shift();
+                    // Limit number of pixels
+                    if (abstractPixels.length > maxPixels) {
+                        abstractPixels.shift();
                     }
 
-                    animateAbstractShapes();
+                    drawAbstractPixels();
                 }
 
-                function animateAbstractShapes() {
-                    ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                    abstractShapes.forEach((shape, index) => {
-                        // Draw shape
-                        ctx.beginPath();
-                        ctx.arc(shape.x, shape.y, shape.size, 0, Math.PI * 2);
-                        ctx.fillStyle = shape.color;
-                        ctx.fill();
-
-                        // Update position
-                        shape.x += shape.dx;
-                        shape.y += shape.dy;
-
-                        // Bounce off edges
-                        if (shape.x + shape.size > canvas.width || shape.x - shape.size < 0) {
-                            shape.dx *= -1;
-                        }
-                        if (shape.y + shape.size > canvas.height || shape.y - shape.size < 0) {
-                            shape.dy *= -1;
-                        }
-
-                        // Optionally, reduce size over time
-                        // shape.size *= 0.99;
+                function drawAbstractPixels() {
+                    abstractPixels.forEach(pixel => {
+                        ctx.fillStyle = pixel.color;
+                        ctx.fillRect(pixel.x, pixel.y, 1, 1); // Draw single pixel
                     });
-
-                    requestAnimationFrame(animateAbstractShapes);
                 }
+
+                // Abstract Animation Loop
+                function abstractLoop() {
+                    applyAbstractEffect();
+                    requestAnimationFrame(abstractLoop);
+                }
+
+                abstractLoop(); // Start abstract visualization
             </script>
         </body>
         </html>
@@ -871,94 +800,93 @@ function stopAbstractMode() {
         abstractAnimationFrameId = null;
     }
 
-    // Clear abstract shapes
-    abstractShapes.length = 0;
-
-    // Optionally, clear the canvas or redraw media
-    if (videoElement && !videoElement.paused) {
-        ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-    } else if (imageElement) {
-        ctx.drawImage(imageElement, 0, 0, canvas.width, canvas.height);
-    } else if (audioElement && !audioElement.paused) {
-        // Optionally, you can leave trails or clear
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-    } else {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-    }
-
-    // Notify visualization window to clear
-    if (broadcastChannel) {
-        broadcastChannel.postMessage({ type: 'clear' });
-    }
+    // Clear abstract pixels
+    abstractPixels.length = 0;
 }
 
 // 4.34. Abstract Loop
 function abstractLoop() {
     if (!isAbstractActive) return;
 
-    // Add new shapes randomly
-    if (Math.random() < 0.1) { // 10% chance to add a new shape each frame
-        addRandomShape();
-    }
+    // Add new pixel randomly
+    addRandomPixel();
 
-    // Update and draw shapes
-    updateAbstractShapes();
+    // Draw and manage abstract pixels
+    drawAbstractPixels();
 
     abstractAnimationFrameId = requestAnimationFrame(abstractLoop);
 }
 
-// 4.35. Add Random Shape
-function addRandomShape() {
-    const size = Math.random() * 30 + 5;
-    const x = Math.random() * canvas.width;
-    const y = Math.random() * canvas.height;
-    const dx = (Math.random() - 0.5) * 4;
-    const dy = (Math.random() - 0.5) * 4;
+// 4.35. Add Random Pixel
+function addRandomPixel() {
+    const x = Math.floor(Math.random() * canvas.width);
+    const y = Math.floor(Math.random() * canvas.height);
     const color = `hsl(${Math.random() * 360}, 100%, 50%)`;
 
-    const shape = { x, y, dx, dy, size, color };
-    abstractShapes.push(shape);
+    abstractPixels.push({ x, y, color });
 
-    // Limit number of shapes
-    if (abstractShapes.length > maxShapes) {
-        abstractShapes.shift();
+    // Limit number of pixels
+    if (abstractPixels.length > maxPixels) {
+        abstractPixels.shift();
     }
 }
 
-// 4.36. Update Abstract Shapes
-function updateAbstractShapes() {
-    const pixelSize = 2; // Smallest pixel size
-    const glitchIntensity = glitchIntensitySlider.value; // 0 to 1
-
-    // For each shape, create pixelations
-    abstractShapes.forEach((shape, index) => {
-        // Draw pixelated shape
-        ctx.fillStyle = shape.color;
-        ctx.fillRect(shape.x, shape.y, pixelSize, pixelSize);
-
-        // Update position
-        shape.x += shape.dx;
-        shape.y += shape.dy;
-
-        // Bounce off edges
-        if (shape.x + pixelSize > canvas.width || shape.x < 0) {
-            shape.dx *= -1;
-        }
-        if (shape.y + pixelSize > canvas.height || shape.y < 0) {
-            shape.dy *= -1;
-        }
+// 4.36. Draw Abstract Pixels
+function drawAbstractPixels() {
+    abstractPixels.forEach(pixel => {
+        ctx.fillStyle = pixel.color;
+        ctx.fillRect(pixel.x, pixel.y, 1, 1); // Draw single pixel
     });
 }
 
-// 4.37. Apply Abstract Effect
-function applyAbstractEffect() {
-    if (!isAbstractActive) return;
+// ------------------------------
+// 5. Effect Implementations
+// ------------------------------
 
-    // No specific code here as abstract shapes are handled in the abstract loop
+// 5.1. Apply Glitch Effect
+function applyGlitchEffect() {
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+
+    // Determine number of pixels to glitch based on intensity
+    const intensity = parseFloat(glitchIntensitySlider.value); // 0 to 1
+    const numberOfPixels = Math.floor(canvas.width * canvas.height * intensity * 0.01); // Adjust factor as needed
+
+    for (let i = 0; i < numberOfPixels; i++) {
+        const x = Math.floor(Math.random() * canvas.width);
+        const y = Math.floor(Math.random() * canvas.height);
+        const index = (y * canvas.width + x) * 4;
+
+        // Randomly alter the pixel's color
+        data[index] = Math.floor(Math.random() * 256);     // Red
+        data[index + 1] = Math.floor(Math.random() * 256); // Green
+        data[index + 2] = Math.floor(Math.random() * 256); // Blue
+        // Alpha remains unchanged
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+}
+
+// 5.2. Apply Analog Effect
+function applyAnalogEffect() {
+    // Determine intensity based on slider
+    const intensity = parseFloat(analogIntensitySlider.value); // 0 to 1
+    ctx.globalAlpha = intensity * 0.2; // Adjust alpha for intensity
+    ctx.fillStyle = 'rgba(0, 255, 255, 1)'; // Cyan tint
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.globalAlpha = 1.0; // Reset alpha
+}
+
+// 5.3. Apply Trails Effect
+function applyTrailsEffect() {
+    // Determine intensity based on slider
+    const intensity = parseFloat(trailsIntensitySlider.value); // 0 to 1
+    ctx.fillStyle = `rgba(0, 0, 0, ${1 - intensity})`; // Higher intensity means less fading
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 
 // ------------------------------
-// 5. Live Visualization via BroadcastChannel
+// 6. Live Visualization via BroadcastChannel
 // ------------------------------
 
 // Broadcast messages to visualization window
@@ -975,7 +903,7 @@ function sendStrobeToVisualization(show, color) {
 }
 
 // ------------------------------
-// 6. Performance Optimizations
+// 7. Performance Optimizations
 // ------------------------------
 
 // Limit canvas resolution if needed
@@ -985,7 +913,7 @@ function setCanvasSize(width, height) {
 }
 
 // ------------------------------
-// 7. Cleanup on Page Unload
+// 8. Cleanup on Page Unload
 // ------------------------------
 
 window.addEventListener('beforeunload', () => {
