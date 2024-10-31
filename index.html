@@ -2,213 +2,115 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Trippy Effects App</title>
-    <style>
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background-color: #222;
-            color: #fff;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-        }
-
-        header {
-            background-color: #333;
-            padding: 10px 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        header h1 {
-            margin: 0;
-            font-size: 24px;
-        }
-
-        #controls {
-            display: flex;
-            flex-wrap: wrap;
-            padding: 10px 20px;
-            background-color: #444;
-        }
-
-        .control-group {
-            margin: 10px;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .control-group label {
-            margin-bottom: 5px;
-            font-size: 14px;
-        }
-
-        .control-group input[type="range"],
-        .control-group input[type="color"] {
-            width: 150px;
-        }
-
-        .buttons {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin: 10px 0;
-        }
-
-        .buttons button {
-            padding: 10px 15px;
-            font-size: 14px;
-            border: none;
-            border-radius: 5px;
-            background-color: #555;
-            color: #fff;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-
-        .buttons button.active,
-        .buttons button:hover {
-            background-color: #777;
-        }
-
-        #canvasContainer {
-            flex: 1;
-            position: relative;
-        }
-
-        #mediaCanvas {
-            width: 100%;
-            height: 100%;
-            display: block;
-            background-color: #000;
-        }
-
-        footer {
-            background-color: #333;
-            padding: 10px 20px;
-            text-align: center;
-        }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            #controls {
-                flex-direction: column;
-                align-items: center;
-            }
-
-            .control-group {
-                width: 80%;
-                align-items: center;
-            }
-
-            .control-group input[type="range"],
-            .control-group input[type="color"] {
-                width: 100%;
-            }
-
-            .buttons {
-                justify-content: center;
-            }
-        }
-    </style>
-    <!-- PDF.js Library (Ensure you have included PDF.js in your project) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trippy Visual DJ - Enhanced</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="libs/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.4/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.7/dat.gui.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.37/Tone.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stats.js/r17/Stats.min.js"></script>
 </head>
 <body>
-    <header>
-        <h1>Trippy Effects App</h1>
-        <input type="file" id="fileInput" accept="image/*,video/*,audio/*,application/pdf">
-    </header>
-
+    <div id="visual-container" style="background: #ffffff; width: 100%; height: 100vh;"></div>
     <div id="controls">
-        <!-- Effect Buttons -->
-        <div class="control-group">
-            <label>Effects</label>
-            <div class="buttons">
-                <button id="glitchBtn">Toggle Glitch</button>
-                <button id="analogBtn">Toggle Analog</button>
-                <button id="trailsBtn">Toggle Trails</button>
-                <button id="strobeBtn">Start Strobe</button>
+        <button id="startButton">Start Visuals</button>
+        <div class="effect-controls">
+            <div>
+                <button class="toggleButton" id="strobeButton">Toggle Strobe</button>
+                <input type="range" class="slider" id="strobeSlider" min="0" max="1" step="0.01">
             </div>
-        </div>
-
-        <!-- Glitch Intensity -->
-        <div class="control-group">
-            <label for="glitchIntensity">Glitch Intensity: <span id="glitchIntensityValue">0.50</span></label>
-            <input type="range" id="glitchIntensity" min="0" max="1" step="0.01" value="0.5">
-        </div>
-
-        <!-- Analog Intensity -->
-        <div class="control-group">
-            <label for="analogIntensity">Analog Intensity: <span id="analogIntensityValue">0.50</span></label>
-            <input type="range" id="analogIntensity" min="0" max="1" step="0.01" value="0.5">
-        </div>
-
-        <!-- Trails Intensity -->
-        <div class="control-group">
-            <label for="trailsIntensity">Trails Intensity: <span id="trailsIntensityValue">0.50</span></label>
-            <input type="range" id="trailsIntensity" min="0" max="1" step="0.01" value="0.5">
-        </div>
-
-        <!-- Strobe Controls -->
-        <div class="control-group">
-            <label for="strobeSpeed">Strobe Speed: <span id="speedValue">5</span> FPS</label>
-            <input type="range" id="strobeSpeed" min="1" max="20" step="1" value="5">
-        </div>
-        <div class="control-group">
-            <label for="strobeColor">Strobe Color:</label>
-            <input type="color" id="strobeColor" value="#FFFFFF">
-        </div>
-
-        <!-- Audio Controls -->
-        <div class="control-group">
-            <label>Audio Controls</label>
-            <div class="buttons">
-                <button id="playPauseBtn">Play</button>
-                <button id="stopBtn">Stop</button>
+            <div>
+                <button class="toggleButton" id="crtButton">Toggle CRT</button>
+                <input type="range" class="slider" id="crtSlider" min="0" max="1" step="0.01">
             </div>
-        </div>
-
-        <!-- Recording Controls -->
-        <div class="control-group">
-            <label>Recording</label>
-            <div class="buttons">
-                <button id="startRecordingBtn">Start Recording</button>
-                <button id="stopRecordingBtn" disabled>Stop Recording</button>
+            <div>
+                <button class="toggleButton" id="pixelationButton">Toggle Pixelation</button>
+                <input type="range" class="slider" id="pixelationSlider" min="0" max="1" step="0.01">
             </div>
-            <a id="downloadVideoLink" href="#" download="trippy_video.webm" style="display:none; margin-top:10px;">Download Video</a>
-        </div>
-
-        <!-- Live Visualization -->
-        <div class="control-group">
-            <label>Live Visualization</label>
-            <button id="launchVisualizationBtn">Launch Visualization</button>
-        </div>
-
-        <!-- Abstract Mode Controls -->
-        <div class="control-group">
-            <label>Abstract Mode</label>
-            <div class="buttons">
-                <button id="abstractBtn">Start Abstract</button>
-                <button id="pixelBtn">Pixel</button>
-                <button id="blobBtn">Blob</button>
-                <button id="heartBtn">Heart</button>
-                <button id="smileyBtn">Smiley</button>
+            <div>
+                <button class="toggleButton" id="etchButton">Toggle Etch-a-Sketch</button>
+                <input type="range" class="slider" id="etchSlider" min="0" max="1" step="0.01">
             </div>
         </div>
     </div>
+    <div id="stats-container"></div>
+    <script src="app.js" defer></script>
+    <script>
+        document.getElementById('startButton').addEventListener('click', () => {
+            document.getElementById('visual-container').style.background = 'none';
+            generateArt();
+        });
 
-    <div id="canvasContainer">
-        <canvas id="mediaCanvas"></canvas>
-    </div>
+        function generateArt() {
+            // Initialize Three.js scene and other visual elements here.
+            const strobeButton = document.getElementById('strobeButton');
+            const strobeSlider = document.getElementById('strobeSlider');
+            const crtButton = document.getElementById('crtButton');
+            const crtSlider = document.getElementById('crtSlider');
+            const pixelationButton = document.getElementById('pixelationButton');
+            const pixelationSlider = document.getElementById('pixelationSlider');
+            const etchButton = document.getElementById('etchButton');
+            const etchSlider = document.getElementById('etchSlider');
 
-    <footer>
-        &copy; 2024 Trippy Effects App
-    </footer>
+            let strobeActive = false;
+            let crtActive = false;
+            let pixelationActive = false;
+            let etchActive = false;
 
-    <!-- Include app.js -->
-    <script src="app.js"></script>
+            // Toggle Strobe Effect
+            strobeButton.addEventListener('click', () => {
+                strobeActive = !strobeActive;
+            });
+
+            strobeSlider.addEventListener('input', () => {
+                if (strobeActive) {
+                    // Adjust strobe effect intensity based on slider value
+                    const intensity = strobeSlider.value;
+                    // Logic to update strobe effect
+                }
+            });
+
+            // Toggle CRT Effect
+            crtButton.addEventListener('click', () => {
+                crtActive = !crtActive;
+                document.body.style.filter = crtActive ? `url(#crt)` : 'none';
+            });
+
+            crtSlider.addEventListener('input', () => {
+                if (crtActive) {
+                    // Adjust CRT effect intensity based on slider value
+                    const intensity = crtSlider.value;
+                    // Logic to update CRT effect
+                }
+            });
+
+            // Toggle Pixelation Effect
+            pixelationButton.addEventListener('click', () => {
+                pixelationActive = !pixelationActive;
+            });
+
+            pixelationSlider.addEventListener('input', () => {
+                if (pixelationActive) {
+                    // Adjust pixelation effect intensity based on slider value
+                    const intensity = pixelationSlider.value;
+                    // Logic to update pixelation effect
+                }
+            });
+
+            // Toggle Etch-a-Sketch Effect
+            etchButton.addEventListener('click', () => {
+                etchActive = !etchActive;
+            });
+
+            etchSlider.addEventListener('input', () => {
+                if (etchActive) {
+                    // Adjust etch-a-sketch effect intensity based on slider value
+                    const intensity = etchSlider.value;
+                    // Logic to update etch-a-sketch effect
+                }
+            });
+        }
+    </script>
 </body>
 </html>
